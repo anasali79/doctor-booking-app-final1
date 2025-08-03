@@ -99,6 +99,8 @@ export default function DoctorProfilePage() {
                 <Image
                   src={doctor.image || "/placeholder.svg"}
                   alt={doctor.name}
+                  width={128}
+                  height={128}
                   className="w-32 h-32 rounded-full object-cover mx-auto md:mx-0"
                 />
                 <div className="flex-1 text-center md:text-left">

@@ -36,14 +36,15 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { useSearchParams } from "next/navigation"
-import { Calendar } from "@/components/ui/calendar" // shadcn Calendar component
 import { format } from "date-fns" // For date formatting
+
+// Import the new calendar component
+import DoctorCalendarView from "@/components/doctor-calendar-view"
 
 export default function DoctorAppointmentsPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const searchParams = useSearchParams()
-
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -58,6 +59,9 @@ export default function DoctorAppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined) // Default to undefined to show all initially
   const [selectedTimeSlot, setSelectedTimeSlot] = useState("all") // "all", "morning", "afternoon", "evening"
 
+  // New state to toggle between list and calendar view
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
+
   useEffect(() => {
     if (user) {
       loadAppointments()
@@ -65,15 +69,25 @@ export default function DoctorAppointmentsPage() {
   }, [user])
 
   useEffect(() => {
-    filterAppointments()
-  }, [appointments, searchTerm, statusFilter, selectedDate, selectedTimeSlot]) // Added new dependencies
+    // Apply filters only if in list view, calendar handles its own date/time display
+    if (viewMode === "list") {
+      filterAppointments()
+    } else {
+      // When in calendar view, the calendar component handles filtering by date/time
+      // We still need to pass the full appointments list to it.
+      setFilteredAppointments(appointments)
+    }
+  }, [appointments, searchTerm, statusFilter, selectedDate, selectedTimeSlot, viewMode]) // Added new dependencies and viewMode
 
   const loadAppointments = async () => {
     if (!user) return
+    setIsLoading(true) // Set loading true when starting to load
     try {
       const appointmentsData = await appointmentsAPI.getByDoctorId(user.id)
       setAppointments(appointmentsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
+      console.log("Appointments loaded:", appointmentsData) // Log loaded data
     } catch (error) {
+      console.error("Failed to load appointments:", error) // Log error
       toast({
         title: "Error",
         description: "Failed to load appointments",
@@ -86,19 +100,16 @@ export default function DoctorAppointmentsPage() {
 
   const filterAppointments = () => {
     let currentFiltered = appointments
-
     // 1. Filter by selected date (only if a date is selected)
     if (selectedDate) {
       const selectedDateString = format(selectedDate, "yyyy-MM-dd") // Format to YYYY-MM-DD
       currentFiltered = currentFiltered.filter((apt) => apt.date === selectedDateString)
     }
-
     // 2. Filter by time slot (only if a time slot is selected)
     if (selectedTimeSlot !== "all") {
       currentFiltered = currentFiltered.filter((apt) => {
         const [hours, minutes] = apt.time.split(":").map(Number)
         const totalMinutes = hours * 60 + minutes // Convert time to minutes for easier comparison
-
         if (selectedTimeSlot === "morning") {
           return totalMinutes >= 9 * 60 && totalMinutes < 12 * 60 // 9:00 AM to 11:59 AM
         } else if (selectedTimeSlot === "afternoon") {
@@ -109,43 +120,38 @@ export default function DoctorAppointmentsPage() {
         return true
       })
     }
-
     // 3. Apply search term (original filter)
     if (searchTerm) {
       currentFiltered = currentFiltered.filter((apt) =>
         apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
-
     // 4. Apply status filter (original filter)
     if (statusFilter !== "all") {
       currentFiltered = currentFiltered.filter((apt) => apt.status === statusFilter)
     }
-
     setFilteredAppointments(currentFiltered)
   }
 
-  const handleReschedule = async () => {
-    if (!selectedAppointment || !rescheduleDate || !rescheduleTime) return
+  const handleReschedule = async (appointmentId: string, newDate: string, newTime: string) => {
     setIsRescheduling(true)
+    console.log("Calling appointmentsAPI.reschedule with:", { appointmentId, newDate, newTime })
     try {
-      await appointmentsAPI.reschedule(selectedAppointment.id, rescheduleDate, rescheduleTime)
-      setAppointments((prev) =>
-        prev.map((apt) =>
-          apt.id === selectedAppointment.id ? { ...apt, date: rescheduleDate, time: rescheduleTime } : apt,
-        ),
-      )
+      await appointmentsAPI.reschedule(appointmentId, newDate, newTime)
+      // Crucial: Re-fetch all appointments after a successful update
+      await loadAppointments()
       toast({
         title: "Success",
         description: "Appointment rescheduled successfully!",
       })
-      setSelectedAppointment(null)
+      setSelectedAppointment(null) // Close dialog if opened from list view
       setRescheduleDate("")
       setRescheduleTime("")
     } catch (error) {
+      console.error("Error rescheduling appointment via API:", error)
       toast({
         title: "Error",
-        description: "Failed to reschedule appointment",
+        description: "Failed to reschedule appointment. Please check your network and API.",
         variant: "destructive",
       })
     } finally {
@@ -154,17 +160,20 @@ export default function DoctorAppointmentsPage() {
   }
 
   const updateAppointmentStatus = async (appointmentId: string, status: Appointment["status"]) => {
+    console.log("Calling appointmentsAPI.updateStatus with:", { appointmentId, status })
     try {
       await appointmentsAPI.updateStatus(appointmentId, status)
-      setAppointments((prev) => prev.map((apt) => (apt.id === appointmentId ? { ...apt, status } : apt)))
+      // Crucial: Re-fetch all appointments after a successful update
+      await loadAppointments()
       toast({
         title: "Success",
         description: `Appointment ${status} successfully!`,
       })
     } catch (error) {
+      console.error("Error updating appointment status via API:", error)
       toast({
         title: "Error",
-        description: "Failed to update appointment",
+        description: "Failed to update appointment. Please check your network and API.",
         variant: "destructive",
       })
     }
@@ -196,7 +205,6 @@ export default function DoctorAppointmentsPage() {
     })
     return grouped
   }
-
   const groupedAppointments = groupAppointmentsByDate(filteredAppointments)
 
   const AppointmentCard = ({ appointment, index }: { appointment: Appointment; index: number }) => (
@@ -280,7 +288,11 @@ export default function DoctorAppointmentsPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setSelectedAppointment(appointment)}
+                      onClick={() => {
+                        setSelectedAppointment(appointment)
+                        setRescheduleDate(appointment.date)
+                        setRescheduleTime(appointment.time)
+                      }}
                       className="w-full border-teal-500/30 text-teal-300 hover:bg-teal-500/10"
                     >
                       <Edit className="w-4 h-4 mr-1" />
@@ -327,7 +339,7 @@ export default function DoctorAppointmentsPage() {
                       </div>
                       <div className="flex space-x-2">
                         <Button
-                          onClick={handleReschedule}
+                          onClick={() => handleReschedule(appointment.id, rescheduleDate, rescheduleTime)}
                           disabled={isRescheduling || !rescheduleDate || !rescheduleTime}
                           className="flex-1 bg-teal-500 hover:bg-teal-600"
                         >
@@ -371,179 +383,110 @@ export default function DoctorAppointmentsPage() {
             <p className="text-slate-400 text-xl">Manage your patient appointments efficiently</p>
           </div>
 
-          {/* Main Content Area: Original Filters + Appointments List (Left) and New Calendar Sidebar (Right) */}
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Left Side: Original Filters and Appointment List */}
-            <div className="flex-1">
-              {/* ORIGINAL: Filters (Search and Status) */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search patients..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-slate-800/50 border-slate-600/50 text-white placeholder-slate-400 focus:border-teal-500/50"
-                  />
+          {/* View Mode Toggle */}
+          <div className="flex justify-end mb-6">
+            <Button
+              onClick={() => setViewMode(viewMode === "list" ? "calendar" : "list")}
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+            >
+              {viewMode === "list" ? "Calendar View" : "List View"}
+            </Button>
+          </div>
+
+          {/* Main Content Area */}
+          {viewMode === "list" ? (
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Left Side: Original Filters and Appointment List */}
+              <div className="flex-1">
+                {/* ORIGINAL: Filters (Search and Status) */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <Input
+                      placeholder="Search patients..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 bg-slate-800/50 border-slate-600/50 text-white placeholder-slate-400 focus:border-teal-500/50"
+                    />
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-48 bg-slate-800/50 border-slate-600/50 text-white">
+                      <Filter className="w-4 h-4 mr-2" />
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-48 bg-slate-800/50 border-slate-600/50 text-white">
-                    <Filter className="w-4 h-4 mr-2" />
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600 text-white">
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Confirmed</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* ORIGINAL: Appointments Display */}
+                {isLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[...Array(6)].map((_, i) => (
+                      <Card key={i} className="animate-pulse bg-slate-800/50">
+                        <CardHeader>
+                          <div className="h-6 bg-slate-700 rounded w-3/4" />
+                          <div className="h-4 bg-slate-700 rounded w-1/2" />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="h-20 bg-slate-700 rounded" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : filteredAppointments.length === 0 ? (
+                  <Card className="text-center py-16 border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm">
+                    <CardContent>
+                      <div className="w-24 h-24 bg-gradient-to-r from-teal-500/20 to-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CalendarIcon className="w-12 h-12 text-teal-400" />
+                      </div>
+                      <h3 className="text-2xl font-semibold text-white mb-2">No Appointments Found</h3>
+                      <p className="text-slate-400">
+                        {searchTerm || statusFilter !== "all" || selectedDate || selectedTimeSlot !== "all"
+                          ? "Try adjusting your search or filter criteria"
+                          : "You don't have any appointments scheduled yet"}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-12">
+                    {Object.entries(groupedAppointments).map(([date, dayAppointments]) => (
+                      <div key={date}>
+                        <div className="flex items-center mb-6">
+                          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent" />
+                          <h2 className="px-6 text-2xl font-bold text-white bg-slate-900/50 rounded-full py-2">
+                            {new Date(date).toLocaleDateString("en-US", {
+                              weekday: "long",
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                          </h2>
+                          <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent" />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {dayAppointments.map((appointment, index) => (
+                            <AppointmentCard key={appointment.id} appointment={appointment} index={index} />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              {/* ORIGINAL: Appointments Display */}
-              {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[...Array(6)].map((_, i) => (
-                    <Card key={i} className="animate-pulse bg-slate-800/50">
-                      <CardHeader>
-                        <div className="h-6 bg-slate-700 rounded w-3/4" />
-                        <div className="h-4 bg-slate-700 rounded w-1/2" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-20 bg-slate-700 rounded" />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : filteredAppointments.length === 0 ? (
-                <Card className="text-center py-16 border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm">
-                  <CardContent>
-                    <div className="w-24 h-24 bg-gradient-to-r from-teal-500/20 to-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <CalendarIcon className="w-12 h-12 text-teal-400" />
-                    </div>
-                    <h3 className="text-2xl font-semibold text-white mb-2">No Appointments Found</h3>
-                    <p className="text-slate-400">
-                      {searchTerm || statusFilter !== "all" || selectedDate || selectedTimeSlot !== "all"
-                        ? "Try adjusting your search or filter criteria"
-                        : "You don't have any appointments scheduled yet"}
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-12">
-                  {Object.entries(groupedAppointments).map(([date, dayAppointments]) => (
-                    <div key={date}>
-                      <div className="flex items-center mb-6">
-                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent" />
-                        <h2 className="px-6 text-2xl font-bold text-white bg-slate-900/50 rounded-full py-2">
-                          {new Date(date).toLocaleDateString("en-US", {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </h2>
-                        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent" />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {dayAppointments.map((appointment, index) => (
-                          <AppointmentCard key={appointment.id} appointment={appointment} index={index} />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-
-            <div className="lg:w-1/3 xl:w-1/4">
-  <Card className="border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm p-4 sticky top-24 overflow-hidden">
-    <CardHeader className="pb-4">
-      <CardTitle className="text-white flex items-center">
-        <CalendarIcon className="w-5 h-5 mr-2 text-teal-400" />
-        Appointment Calendar View
-      </CardTitle>
-      <CardDescription className="text-slate-400">
-        Select a date to filter appointments.
-      </CardDescription>
-    </CardHeader>
-
-    <CardContent className="flex flex-col items-center space-y-4 overflow-hidden">
-      <div className="w-full max-w-xs">
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={setSelectedDate}
-          className="rounded-md border bg-slate-800/50 border-slate-700 text-white w-full"
-          classNames={{
-            months: "flex flex-col space-y-4", // Single column
-            month: "space-y-4",
-            caption: "flex justify-between items-center px-2", 
-            caption_label: "text-sm font-medium",
-            nav: "flex items-center space-x-1",
-            nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-            table: "w-full border-collapse space-y-1",
-            head_row: "flex",
-            head_cell: "text-slate-400 rounded-md w-9 font-normal text-[0.8rem]",
-            row: "flex w-full mt-2",
-            cell: "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-            day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 text-white hover:bg-slate-700/50",
-            day_range_end: "day-range-end",
-            day_selected:
-              "bg-teal-600 text-white hover:bg-teal-600 hover:text-white focus:bg-teal-600 focus:text-white",
-            day_today: "bg-teal-700/30 text-teal-300 border border-teal-500/50",
-            day_outside: "day-outside text-slate-500 opacity-50",
-            day_disabled: "text-slate-500 opacity-50",
-            day_range_middle: "aria-selected:bg-slate-800/50 aria-selected:text-white",
-            day_hidden: "invisible",
-          }}
-        />
-      </div>
-
-      {/* Time Filter */}
-      <Select value={selectedTimeSlot} onValueChange={setSelectedTimeSlot}>
-        <SelectTrigger className="w-full bg-slate-800/50 border-slate-600/50 text-white">
-          <Clock className="w-4 h-4 mr-2" />
-          <SelectValue placeholder="Filter by time slot" />
-        </SelectTrigger>
-        <SelectContent className="bg-slate-800 border-slate-600 text-white">
-          <SelectItem value="all">All Times</SelectItem>
-          <SelectItem value="morning">Morning (9 AM - 12 PM)</SelectItem>
-          <SelectItem value="afternoon">Afternoon (12 PM - 5 PM)</SelectItem>
-          <SelectItem value="evening">Evening (5 PM - 10 PM)</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {/* Buttons */}
-      <div className="flex gap-2 w-full">
-        <Button
-          variant="outline"
-          onClick={() => setSelectedDate(new Date())}
-          className="flex-1 border-teal-500/30 text-teal-300 hover:bg-teal-500/10"
-        >
-          Today
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => {
-            setSelectedDate(undefined)
-            setSelectedTimeSlot("all")
-          }}
-          className="flex-1 border-slate-600 text-slate-300 hover:bg-slate-700/50"
-        >
-          Clear Filters
-         </Button>
-          </div>
-
-         <p className="text-slate-500 text-sm text-center">
-          * Select a date and time slot to filter the appointments below.
-         </p>
-         </CardContent>
-           </Card>
-           </div>
-
-          </div>
+          ) : (
+            <DoctorCalendarView
+              key={appointments.length > 0 ? appointments[0].id : "no-appointments"} // Forces re-render when appointments change
+              appointments={appointments}
+              onReschedule={handleReschedule}
+              onUpdateStatus={updateAppointmentStatus}
+            />
+          )}
         </div>
       </div>
     </ProtectedRoute>

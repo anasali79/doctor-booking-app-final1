@@ -1,5 +1,4 @@
-const BASE_URL = "https://doctor-api-u6mn.onrender.com";
-
+const BASE_URL = "https://doctor-api-u6mn.onrender.com"
 
 export interface Doctor {
   id: string
@@ -28,13 +27,15 @@ export interface TimeSlot {
   isBooked: boolean
 }
 
+export type AppointmentStatus = "pending" | "confirmed" | "cancelled" | "completed"
+
 export interface Appointment {
   id: string
   doctorId: string
   patientId: string
   date: string
   time: string
-  status: "pending" | "confirmed" | "cancelled" | "completed"
+  status: AppointmentStatus
   doctorName: string
   patientName: string
   specialty: string
@@ -56,18 +57,14 @@ export const authAPI = {
     try {
       const endpoint = role === "doctor" ? "doctors" : "patients"
       const response = await fetch(`${BASE_URL}/${endpoint}`)
-
       if (!response.ok) {
         throw new Error("Server not responding. Please make sure JSON Server is running on port 3001.")
       }
-
       const users = await response.json()
       const user = users.find((u: any) => u.email === email && u.password === password)
-
       if (!user) {
         throw new Error("Invalid email or password")
       }
-
       // Return user with role
       return { ...user, role }
     } catch (error) {
@@ -77,11 +74,9 @@ export const authAPI = {
       throw error
     }
   },
-
   async signup(userData: any, role: "doctor" | "patient") {
     try {
       const endpoint = role === "doctor" ? "doctors" : "patients"
-
       // Check if user already exists
       const existingResponse = await fetch(`${BASE_URL}/${endpoint}`)
       if (existingResponse.ok) {
@@ -91,7 +86,6 @@ export const authAPI = {
           throw new Error("User with this email already exists")
         }
       }
-
       const response = await fetch(`${BASE_URL}/${endpoint}`, {
         method: "POST",
         headers: {
@@ -103,11 +97,9 @@ export const authAPI = {
           password: userData.password,
         }),
       })
-
       if (!response.ok) {
         throw new Error("Server not responding. Please make sure JSON Server is running on port 3001.")
       }
-
       const user = await response.json()
       return { ...user, role }
     } catch (error) {
@@ -135,7 +127,6 @@ export const doctorsAPI = {
       throw error
     }
   },
-
   async getById(id: string): Promise<Doctor> {
     try {
       const response = await fetch(`${BASE_URL}/doctors/${id}`)
@@ -150,7 +141,6 @@ export const doctorsAPI = {
       throw error
     }
   },
-
   async update(id: string, data: Partial<Doctor>): Promise<Doctor> {
     try {
       const response = await fetch(`${BASE_URL}/doctors/${id}`, {
@@ -168,6 +158,22 @@ export const doctorsAPI = {
       if (error instanceof TypeError && error.message.includes("fetch")) {
         throw new Error("Cannot connect to server. Please run 'npm run json-server' in a separate terminal.")
       }
+      throw error
+    }
+  },
+}
+
+// Patients API (NEW)
+export const patientsAPI = {
+  async getById(id: string): Promise<Patient> {
+    try {
+      const response = await fetch(`${BASE_URL}/patients/${id}`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch patient details")
+      }
+      return response.json()
+    } catch (error) {
+      console.error("Error fetching patient details:", error)
       throw error
     }
   },
@@ -195,8 +201,8 @@ export const appointmentsAPI = {
       throw error
     }
   },
-
   async getByDoctorId(doctorId: string): Promise<Appointment[]> {
+    console.log(`Fetching appointments from: ${BASE_URL}/appointments?doctorId=${doctorId}`)
     try {
       const response = await fetch(`${BASE_URL}/appointments?doctorId=${doctorId}`)
       if (!response.ok) {
@@ -210,7 +216,6 @@ export const appointmentsAPI = {
       throw error
     }
   },
-
   async getByPatientId(patientId: string): Promise<Appointment[]> {
     try {
       const response = await fetch(`${BASE_URL}/appointments?patientId=${patientId}`)
@@ -225,10 +230,32 @@ export const appointmentsAPI = {
       throw error
     }
   },
-
+  async reschedule(id: string, newDate: string, newTime: string): Promise<Appointment> {
+    console.log(`Attempting to PATCH ${BASE_URL}/appointments/${id} with new date/time and status 'pending'...`)
+    console.log("New Date:", newDate, "New Time:", newTime)
+    try {
+      const response = await fetch(`${BASE_URL}/appointments/${id}`, {
+        method: "PATCH", // Use PATCH to update specific fields
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ date: newDate, time: newTime, status: "pending" }), // Set status to pending
+      })
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "Unknown error" }))
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || response.statusText}`)
+      }
+      const updatedAppointment: Appointment = await response.json()
+      console.log("Appointment rescheduled successfully:", updatedAppointment)
+      return updatedAppointment
+    } catch (error) {
+      console.error("Error rescheduling appointment:", error)
+      throw error
+    }
+  },
   async updateStatus(id: string, status: Appointment["status"]): Promise<Appointment> {
     try {
-        const response = await fetch(`${BASE_URL}/appointments/${id}`, {
+      const response = await fetch(`${BASE_URL}/appointments/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

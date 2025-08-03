@@ -34,7 +34,7 @@
         "15:00",
         "16:00"
       ],
-      "image": "/placeholder.svg?height=200&width=200",
+      "image": "https://i.postimg.cc/FRdQCcCQ/dr-sarah.jpg",
       "about": "Experienced cardiologist specializing in heart disease prevention and treatment.",
       "consultationType": [
         "clinic",
@@ -76,7 +76,7 @@
         "14:00",
         "15:00"
       ],
-      "image": "/placeholder.svg?height=200&width=200",
+      "image": "https://i.postimg.cc/hvvKB6tN/dr-michael.jpg",
       "about": "Board-certified dermatologist with expertise in skin conditions and cosmetic procedures.",
       "consultationType": [
         "clinic",
@@ -117,7 +117,7 @@
         "14:00",
         "15:00"
       ],
-      "image": "/placeholder.svg?height=200&width=200",
+      "image": "https://i.postimg.cc/YCGjgGkT/dr-emily.jpg",
       "about": "Neurologist specializing in brain disorders and neurological conditions.",
       "consultationType": [
         "clinic",
@@ -157,7 +157,7 @@
         "14:00",
         "15:00"
       ],
-      "image": "/placeholder.svg?height=200&width=200",
+      "image": "https://i.postimg.cc/qBNfp8Lf/dr-aisha.jpg",
       "about": "Pediatrician dedicated to children's health and wellness.",
       "consultationType": [
         "clinic",
@@ -198,7 +198,7 @@
         "13:30",
         "14:30"
       ],
-      "image": "/placeholder.svg?height=200&width=200",
+      "image": "https://i.postimg.cc/xCc0rBCh/dr-rajesh.jpg",
       "about": "Orthopedic surgeon with extensive experience in joint replacements and sports injuries.",
       "consultationType": [
         "clinic",
@@ -238,7 +238,7 @@
         "14:00",
         "15:00"
       ],
-      "image": "/placeholder.svg?height=200&width=200",
+      "image": "https://i.postimg.cc/D09HMMJr/dr-neha.jpg",
       "about": "Gynecologist focused on women's reproductive health and wellness.",
       "consultationType": [
         "clinic",
