@@ -27,7 +27,7 @@ export interface TimeSlot {
   isBooked: boolean
 }
 
-export type AppointmentStatus = "pending" | "confirmed" | "cancelled" | "completed"
+export type AppointmentStatus = "pending" | "confirmed" | "cancelled" | "completed" | "approved" // Added 'approved'
 
 export interface Appointment {
   id: string
@@ -163,7 +163,7 @@ export const doctorsAPI = {
   },
 }
 
-// Patients API (NEW)
+// Patients API
 export const patientsAPI = {
   async getById(id: string): Promise<Patient> {
     try {

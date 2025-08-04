@@ -19,13 +19,13 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Edit, Trash2, Phone, Mail, User, CheckCircle, XCircle } from "lucide-react"
-import "@/app/styles/calendar.css" // Added CheckCircle, XCircle
-
+import { Edit, Trash2, Phone, Mail, User, CheckCircle, XCircle, Repeat } from "lucide-react"
+import "@/app/styles/calendar.css"
 // Import the CSS for react-big-calendar and drag and drop
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css"
 // Import our custom calendar styles
+
 
 import { patientsAPI, type Appointment, type Patient } from "@/lib/api"
 
@@ -120,6 +120,7 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
       setSelectedAppointment(null)
       setRescheduleDate("")
       setRescheduleTime("")
+      setIsPatientDetailsDialogOpen(false) // Close patient details dialog after reschedule
     } catch (error) {
       console.error("Error during dialog reschedule:", error)
       toast({
@@ -147,7 +148,7 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
       console.error("Error during cancellation:", error)
       toast({
         title: "Error",
-        description: "Failed to cancel appointment. Check console for details.",
+        description: "Failed to cancel appointment. Check console.",
         variant: "destructive",
       })
     }
@@ -212,6 +213,34 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
         variant: "destructive",
       })
     }
+  }
+
+  const handleApproveFromDetails = async () => {
+    if (!currentDetailsAppointment) return
+    try {
+      await onUpdateStatus(currentDetailsAppointment.id, "approved") // Change status to 'approved' (pink)
+      toast({
+        title: "Success",
+        description: `Appointment for ${currentDetailsAppointment.patientName} approved.`,
+      })
+      setIsPatientDetailsDialogOpen(false) // Close dialog
+    } catch (error) {
+      console.error("Error approving appointment from details dialog:", error)
+      toast({
+        title: "Error",
+        description: "Failed to approve appointment. Check console.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  // This function will now open the reschedule dialog
+  const handleRebookClick = (appointment: Appointment) => {
+    setSelectedAppointment(appointment)
+    setRescheduleDate(appointment.date) // Pre-fill with current date
+    setRescheduleTime(appointment.time) // Pre-fill with current time
+    setIsPatientDetailsDialogOpen(false) // Close patient details dialog
+    // The DialogTrigger for reschedule dialog will handle opening it
   }
 
   const EventComponent = useCallback(
@@ -368,6 +397,9 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
             case "completed":
               backgroundColor = "#3B82F6" // Blue for completed appointments
               break
+            case "approved":
+              backgroundColor = "#FF69B4" // Pink for approved appointments
+              break
           }
           return { style: { backgroundColor, borderRadius: "8px", border: "none" } }
         }}
@@ -408,7 +440,7 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
               Information for {selectedPatientDetails?.name}
             </DialogDescription>
           </DialogHeader>
-          {selectedPatientDetails ? (
+          {selectedPatientDetails && currentDetailsAppointment ? (
             <div className="space-y-4 text-slate-300">
               <div className="flex items-center">
                 <User className="w-5 h-5 mr-2 text-teal-400" />
@@ -422,13 +454,57 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
                 <Phone className="w-5 h-5 mr-2 text-green-400" />
                 <span className="font-semibold">Phone:</span> {selectedPatientDetails.phone}
               </div>
+              <div className="flex items-center">
+                <Repeat className="w-5 h-5 mr-2 text-purple-400" />
+                <span className="font-semibold">Total Time:</span> 30 minutes {/* Assuming 30 min duration */}
+              </div>
               {/* You can add more patient details here if available in your Patient interface */}
             </div>
           ) : (
             <div className="text-slate-400">Loading patient details...</div>
           )}
           <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2 mt-4">
+            {/* Buttons for PENDING appointments */}
+            {currentDetailsAppointment?.status === "pending" && (
+              <>
+                <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleApproveFromDetails}>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Approve
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-slate-600 text-slate-300 bg-transparent"
+                  onClick={() => setIsPatientDetailsDialogOpen(false)}
+                >
+                  Close
+                </Button>
+              </>
+            )}
+
+            {/* Buttons for CONFIRMED appointments (green) */}
             {currentDetailsAppointment?.status === "confirmed" && (
+              <>
+                <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleApproveFromDetails}>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Approve
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-red-500/30 text-red-300 hover:bg-red-500/10 hover:border-red-500/50 bg-transparent"
+                  onClick={handleCancelFromDetails}
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Cancel Appointment
+                </Button>
+                <Button className="bg-blue-500 hover:bg-blue-600 text-white" onClick={handleCompleteFromDetails}>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Mark Complete
+                </Button>
+              </>
+            )}
+
+            {/* Buttons for APPROVED appointments (pink) */}
+            {currentDetailsAppointment?.status === "approved" && (
               <>
                 <Button
                   variant="outline"
@@ -438,20 +514,113 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
                   <XCircle className="w-4 h-4 mr-2" />
                   Cancel Appointment
                 </Button>
-                <Button className="bg-green-500 hover:bg-green-600 text-white" onClick={handleCompleteFromDetails}>
+                <Button className="bg-blue-500 hover:bg-blue-600 text-white" onClick={handleCompleteFromDetails}>
                   <CheckCircle className="w-4 h-4 mr-2" />
                   Mark Complete
                 </Button>
               </>
             )}
-            <Button
-              variant="outline"
-              className="border-slate-600 text-slate-300 bg-transparent"
-              onClick={() => setIsPatientDetailsDialogOpen(false)}
-            >
-              Close
-            </Button>
+
+            {/* Buttons for COMPLETED or CANCELLED appointments */}
+            {(currentDetailsAppointment?.status === "completed" ||
+              currentDetailsAppointment?.status === "cancelled") && (
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="border-purple-500/30 text-purple-300 hover:bg-purple-500/10 hover:border-purple-500/50 bg-transparent"
+                  onClick={() => currentDetailsAppointment && handleRebookClick(currentDetailsAppointment)}
+                >
+                  <Repeat className="w-4 h-4 mr-2" />
+                  Rebook
+                </Button>
+              </DialogTrigger>
+            )}
+            {/* The Close button is now conditionally rendered for 'pending', 'completed', and 'cancelled' statuses */}
+            {(currentDetailsAppointment?.status === "pending" ||
+              currentDetailsAppointment?.status === "completed" ||
+              currentDetailsAppointment?.status === "cancelled") && (
+              <Button
+                variant="outline"
+                className="border-slate-600 text-slate-300 bg-transparent"
+                onClick={() => setIsPatientDetailsDialogOpen(false)}
+              >
+                Close
+              </Button>
+            )}
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reschedule Dialog (This dialog is triggered by the Rebook button) */}
+      <Dialog
+        open={selectedAppointment !== null && !isPatientDetailsDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedAppointment(null)
+            setRescheduleDate("")
+            setRescheduleTime("")
+          }
+        }}
+      >
+        <DialogContent className="bg-slate-800 border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">Reschedule Appointment</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Change the date and time for {selectedAppointment?.patientName}'s appointment
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="date" className="text-slate-300">
+                New Date
+              </Label>
+              <Input
+                id="date"
+                type="date"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                className="bg-slate-700 border-slate-600 text-white"
+              />
+            </div>
+            <div>
+              <Label htmlFor="time" className="text-slate-300">
+                New Time
+              </Label>
+              <Select value={rescheduleTime} onValueChange={setRescheduleTime}>
+                <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
+                  <SelectValue placeholder="Select time" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-700 border-slate-600">
+                  {Array.from({ length: 16 }, (_, i) => {
+                    const hour = Math.floor(i / 2) + 7
+                    const minute = (i % 2) * 30
+                    const timeString = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+                    return (
+                      <SelectItem key={timeString} value={timeString}>
+                        {format(setMinutes(setHours(new Date(), hour), minute), "hh:mm a")}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                onClick={handleRescheduleFromDialog}
+                disabled={isRescheduling || !rescheduleDate || !rescheduleTime}
+                className="flex-1 bg-teal-500 hover:bg-teal-600"
+              >
+                {isRescheduling ? "Rescheduling..." : "Reschedule"}
+              </Button>
+              <Button
+                variant="outline"
+                className="border-slate-600 text-slate-300 bg-transparent"
+                onClick={() => setSelectedAppointment(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
