@@ -39,6 +39,10 @@ export interface Appointment {
   doctorName: string
   patientName: string
   specialty: string
+  // New fields for tooltip - Make sure these are present in your JSON server data
+  followUp?: string
+  paymentStatus?: "paid" | "pending" | "failed"
+  consultationType?: "video" | "call" | "clinic"
 }
 
 // Check if JSON Server is running

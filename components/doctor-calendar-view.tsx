@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useMemo, useCallback } from "react"
 import { Calendar, momentLocalizer } from "react-big-calendar"
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop"
@@ -19,14 +18,14 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { Edit, Trash2, Phone, Mail, User, CheckCircle, XCircle, Repeat } from "lucide-react"
 import "@/app/styles/calendar.css"
+import { Edit, Trash2, Phone, Mail, User, CheckCircle, XCircle, Repeat } from "lucide-react"
+
 // Import the CSS for react-big-calendar and drag and drop
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css"
+
 // Import our custom calendar styles
-
-
 import { patientsAPI, type Appointment, type Patient } from "@/lib/api"
 
 const localizer = momentLocalizer(moment)
@@ -46,25 +45,24 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
   const [isRescheduling, setIsRescheduling] = useState(false)
   const [isCancelConfirmOpen, setIsCancelConfirmOpen] = useState(false)
   const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null)
-
   // State for patient details popup
   const [selectedPatientDetails, setSelectedPatientDetails] = useState<Patient | null>(null)
   const [isPatientDetailsDialogOpen, setIsPatientDetailsDialogOpen] = useState(false)
   // New state to store the full appointment object for the details dialog
   const [currentDetailsAppointment, setCurrentDetailsAppointment] = useState<Appointment | null>(null)
-
   // State to control the current date of the calendar view for navigation
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date())
+  // NEW: State for the current view
+  const [currentView, setCurrentView] = useState<"day" | "week">("week") // Default to week view
 
   const events = useMemo(() => {
     const events = appointments.map((apt) => {
       const [hours, minutes] = apt.time.split(":").map(Number)
       const startDate = setMilliseconds(setSeconds(setMinutes(setHours(parseISO(apt.date), hours), minutes), 0), 0)
       const endDate = addMinutes(startDate, 30) // Assuming 30-minute duration
-
       return {
         id: apt.id,
-        title: apt.patientName,
+        title: apt.patientName, // Keep title for accessibility, but it won't show as default tooltip
         start: startDate,
         end: endDate,
         allDay: false,
@@ -80,12 +78,10 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
       const newDate = format(start, "yyyy-MM-dd")
       const newTime = format(start, "HH:mm")
       const appointmentId = event.id
-
       console.log("Attempting to reschedule via drag-and-drop:")
       console.log("Appointment ID:", appointmentId)
       console.log("New Date:", newDate)
       console.log("New Time:", newTime)
-
       try {
         await onReschedule(appointmentId, newDate, newTime)
         toast({
@@ -209,7 +205,7 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
       console.error("Error cancelling appointment from details dialog:", error)
       toast({
         title: "Error",
-        description: "Failed to cancel appointment. Check console.",
+        description: "Failed to cancel appointment from details dialog. Check console.",
         variant: "destructive",
       })
     }
@@ -243,8 +239,10 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
     // The DialogTrigger for reschedule dialog will handle opening it
   }
 
+  // EventComponent will now only render the content, mouse events are handled by EventWrapper
   const EventComponent = useCallback(
     ({ event }: { event: any }) => {
+      console.log("EventComponent rendering for:", event.title)
       const appointment: Appointment = event.resource
       return (
         <div className="relative h-full w-full p-1 text-white overflow-hidden group">
@@ -252,11 +250,12 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
           <div className="text-base truncate">
             {format(event.start, "hh:mm a")} - {format(event.end, "hh:mm a")}
           </div>
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          {/* This overlay is for buttons, it should not block hover for tooltip */}
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
             <Button
               variant="ghost"
               size="icon"
-              className="text-white hover:text-red-400"
+              className="text-white hover:text-red-400 pointer-events-auto"
               onClick={(e) => {
                 e.stopPropagation() // Prevent calendar click from opening details dialog
                 setAppointmentToCancel(appointment)
@@ -271,7 +270,7 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:text-blue-400"
+                  className="text-white hover:text-blue-400 pointer-events-auto"
                   onClick={(e) => {
                     e.stopPropagation() // Prevent calendar click from opening details dialog
                     setSelectedAppointment(appointment)
@@ -360,23 +359,29 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
     setCurrentCalendarDate(newDate)
   }, [])
 
+  // NEW: Handler for view changes
+  const handleViewChange = useCallback((newView: "day" | "week") => {
+    setCurrentView(newView)
+  }, [])
+
   return (
     <div className="h-[80vh] min-h-[600px] bg-slate-900/80 rounded-lg p-4 shadow-xl">
       <DnDCalendar
-        key={currentCalendarDate.toISOString()}
+        key={currentCalendarDate.toISOString() + currentView} // Add view to key to force re-render on view change
         localizer={localizer}
         events={events}
         onEventDrop={handleEventDrop}
         onSelectEvent={handleSelectEvent}
         resizable={false}
-        defaultView="week"
-        views={["week"]}
+        view={currentView} // Pass the current view state
+        views={["day", "week"]} // Ensure both views are available
         step={30}
         timeslots={2}
         min={minTime}
         max={maxTime}
         date={currentCalendarDate}
         onNavigate={handleNavigate}
+        onView={handleViewChange} // Handle view changes
         components={{
           event: EventComponent,
         }}
@@ -404,8 +409,15 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
           return { style: { backgroundColor, borderRadius: "8px", border: "none" } }
         }}
         toolbar={true}
+        tooltipAccessor={(event) => {
+          const apt = event.resource as Appointment
+          const time = format(event.start, "hh:mm a")
+          const patientName = apt.patientName
+          const consultationType = apt.consultationType || "N/A"
+          const followUp = apt.followUp || "Regular checkup"
+          return `Time: ${time}\nPatient: ${patientName}\nMode: ${consultationType}\nCheckup Type: ${followUp}`
+        }}
       />
-
       {/* Confirmation Dialog for Cancellation */}
       <Dialog open={isCancelConfirmOpen} onOpenChange={setIsCancelConfirmOpen}>
         <DialogContent className="bg-slate-800 border-slate-700">
@@ -430,7 +442,6 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Patient Details Dialog */}
       <Dialog open={isPatientDetailsDialogOpen} onOpenChange={setIsPatientDetailsDialogOpen}>
         <DialogContent className="bg-slate-800 border-slate-700">
@@ -480,7 +491,6 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
                 </Button>
               </>
             )}
-
             {/* Buttons for CONFIRMED appointments (green) */}
             {currentDetailsAppointment?.status === "confirmed" && (
               <>
@@ -502,7 +512,6 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
                 </Button>
               </>
             )}
-
             {/* Buttons for APPROVED appointments (pink) */}
             {currentDetailsAppointment?.status === "approved" && (
               <>
@@ -520,7 +529,6 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
                 </Button>
               </>
             )}
-
             {/* Buttons for COMPLETED or CANCELLED appointments */}
             {(currentDetailsAppointment?.status === "completed" ||
               currentDetailsAppointment?.status === "cancelled") && (
@@ -550,7 +558,6 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Reschedule Dialog (This dialog is triggered by the Rebook button) */}
       <Dialog
         open={selectedAppointment !== null && !isPatientDetailsDialogOpen}

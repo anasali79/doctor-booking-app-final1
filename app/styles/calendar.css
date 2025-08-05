@@ -99,9 +99,9 @@
 }
 
 .rbc-toolbar button {
-  color: #cbd5e1; /* Toolbar button text */
-  background-color: #334155; /* Toolbar button background */
-  border: 1px solid #475569;
+  color: var(--secondary-foreground); /* Text color from theme */
+  background-color: var(--secondary); /* Background color from theme */
+  border: 1px solid var(--border); /* Border color from theme */
   transition: all 0.2s ease-in-out;
   padding: 14px 22px; /* Even larger buttons */
   border-radius: 12px; /* More rounded buttons */
@@ -110,14 +110,14 @@
 }
 
 .rbc-toolbar button:hover {
-  background-color: #475569;
-  color: #e2e8f0;
+  background-color: var(--accent); /* Hover background from theme */
+  color: var(--accent-foreground); /* Hover text color from theme */
 }
 
 .rbc-toolbar button.rbc-active {
-  background-color: #0d9488; /* Active button color (teal) */
-  color: white;
-  border-color: #0d9488;
+  background-color: var(--chart-2); /* Active button color (blue) from theme */
+  color: white; /* White text for active button */
+  border-color: var(--chart-2); /* Active border color from theme */
 }
 
 .rbc-toolbar-label {
