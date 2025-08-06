@@ -6,21 +6,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { Navbar } from "@/components/Navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { appointmentsAPI, type Appointment } from "@/lib/api"
-import {
-  Calendar,
-  Users,
-  Clock,
-  TrendingUp,
-  Activity,
-  Bell,
-  ChevronRight,
-  Eye,
-  Edit,
-  X,
-  Phone,
-  Video,
-  Building,
-} from "lucide-react"
+import { Calendar, Users, Clock, TrendingUp, Activity, Bell, ChevronRight, Eye, Edit, X, Phone, Video, Building, FileText } from 'lucide-react'
 import { useToast } from "@/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -36,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/navigation"
+import { PrescriptionForm } from "@/components/PrescriptionForm" // Import PrescriptionForm
 
 export default function DoctorDashboard() {
   const { user } = useAuth()
@@ -53,6 +40,10 @@ export default function DoctorDashboard() {
   const [rescheduleDate, setRescheduleDate] = useState("")
   const [rescheduleTime, setRescheduleTime] = useState("")
   const [isRescheduling, setIsRescheduling] = useState(false)
+
+  // State for Prescription Form Dialog
+  const [showPrescriptionDialog, setShowPrescriptionDialog] = useState(false)
+  const [appointmentToPrescribe, setAppointmentToPrescribe] = useState<Appointment | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -148,6 +139,29 @@ export default function DoctorDashboard() {
       })
     } finally {
       setIsRescheduling(false)
+    }
+  }
+
+  const handlePrescriptionSuccess = async (prescription) => {
+    if (!appointmentToPrescribe || !user) return
+
+    try {
+      // Update appointment status to 'completed' and link prescription
+      await appointmentsAPI.updateStatus(appointmentToPrescribe.id, "completed", prescription.id)
+      toast({
+        title: "Success",
+        description: "Prescription saved and appointment marked as completed!",
+      })
+      setShowPrescriptionDialog(false)
+      setAppointmentToPrescribe(null)
+      await loadAppointments() // Reload appointments to reflect changes
+    } catch (error) {
+      console.error("Error linking prescription to appointment:", error)
+      toast({
+        title: "Error",
+        description: "Failed to link prescription to appointment.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -303,9 +317,13 @@ export default function DoctorDashboard() {
             <>
               <Button
                 size="sm"
-                onClick={() => handleStatusUpdate(appointment.id, "completed")}
+                onClick={() => {
+                  setAppointmentToPrescribe(appointment)
+                  setShowPrescriptionDialog(true)
+                }}
                 className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm"
               >
+                <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                 Complete
               </Button>
               <Dialog>
@@ -384,6 +402,16 @@ export default function DoctorDashboard() {
                 <X className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
             </>
+          )}
+          {appointment.status === "completed" && appointment.prescriptionId && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => router.push(`/doctor/prescriptions/${appointment.prescriptionId}/edit`)}
+              className="w-full border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
+            >
+              <FileText className="w-4 h-4 mr-1" /> View Prescription
+            </Button>
           )}
         </div>
       )}
@@ -535,6 +563,14 @@ export default function DoctorDashboard() {
                   <Button
                     variant="outline"
                     className="w-full justify-start border-slate-600 text-slate-300 hover:bg-slate-700/50 bg-transparent text-xs sm:text-sm"
+                    onClick={() => router.push("/doctor/prescriptions")}
+                  >
+                    <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                    View Prescriptions
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start border-slate-600 text-slate-300 hover:bg-slate-700/50 bg-transparent text-xs sm:text-sm"
                     onClick={() => router.push("/doctor/patients")}
                   >
                     <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -600,6 +636,23 @@ export default function DoctorDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Prescription Dialog */}
+        {appointmentToPrescribe && (
+          <Dialog open={showPrescriptionDialog} onOpenChange={setShowPrescriptionDialog}>
+            <DialogContent className="max-w-xl md:max-w-2xl p-6 overflow-y-auto max-h-[90vh] bg-slate-800 border-slate-700">
+              <PrescriptionForm
+                appointmentId={appointmentToPrescribe.id}
+                patientId={appointmentToPrescribe.patientId}
+                patientName={appointmentToPrescribe.patientName}
+                doctorId={appointmentToPrescribe.doctorId}
+                doctorName={appointmentToPrescribe.doctorName}
+                onSuccess={handlePrescriptionSuccess}
+                onClose={() => setShowPrescriptionDialog(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </ProtectedRoute>
   )

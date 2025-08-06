@@ -25,7 +25,7 @@
           "Thursday",
           "Saturday"
         ]
-      },
+    },
       "timeSlots": [
         "09:00",
         "10:00",
@@ -165,7 +165,7 @@
         "call"
       ]
     },
-    {
+      {
       "id": "5",
       "name": "Dr. Rajesh Patel",
       "email": "rajesh.patel@example.com",
@@ -245,7 +245,7 @@
         "video",
         "call"
       ]
-    }
+      }
   ],
   "patients": [
     {
@@ -299,7 +299,7 @@
       "symptoms": "",
       "fee": 180
     },
-    {
+      {
       "id": "1753687815468",
       "doctorId": "6",
       "patientId": "1",
@@ -355,5 +355,7 @@
       "symptoms": "",
       "fee": 80
     }
-  ]
-}
+  ],
+  "prescriptions": []
+  }
+  

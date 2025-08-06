@@ -7,22 +7,8 @@ import { Navbar } from "@/components/Navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { appointmentsAPI, type Appointment } from "@/lib/api"
-import {
-  CalendarIcon,
-  Clock,
-  User,
-  CheckCircle,
-  XCircle,
-  Filter,
-  Search,
-  Phone,
-  Mail,
-  Edit,
-  X,
-  Video,
-  Building,
-} from "lucide-react"
+import { appointmentsAPI, Prescription, type Appointment } from "@/lib/api"
+import { CalendarIcon, Clock, User, CheckCircle, XCircle, Filter, Search, Phone, Mail, Edit, X, Video, Building, FileText } from 'lucide-react'
 import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -37,13 +23,16 @@ import {
 import { Label } from "@/components/ui/label"
 import { useSearchParams } from "next/navigation"
 import { format } from "date-fns" // For date formatting
+import { useRouter } from "next/navigation"
 
 // Import the new calendar component
 import DoctorCalendarView from "@/components/doctor-calendar-view"
+import { PrescriptionForm } from "@/components/PrescriptionForm" // Import PrescriptionForm
 
 export default function DoctorAppointmentsPage() {
   const { user } = useAuth()
   const { toast } = useToast()
+  const router = useRouter()
   const searchParams = useSearchParams()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([])
@@ -61,6 +50,10 @@ export default function DoctorAppointmentsPage() {
 
   // New state to toggle between list and calendar view
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
+
+  // State for Prescription Form Dialog
+  const [showPrescriptionDialog, setShowPrescriptionDialog] = useState(false)
+  const [appointmentToPrescribe, setAppointmentToPrescribe] = useState<Appointment | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -159,6 +152,29 @@ export default function DoctorAppointmentsPage() {
     }
   }
 
+  const handlePrescriptionSuccess = async (prescription: Prescription) => {
+    if (!appointmentToPrescribe || !user) return
+
+    try {
+      // Update appointment status to 'completed' and link prescription
+      await appointmentsAPI.updateStatus(appointmentToPrescribe.id, "completed", prescription.id)
+      toast({
+        title: "Success",
+        description: "Prescription saved and appointment marked as completed!",
+      })
+      setShowPrescriptionDialog(false)
+      setAppointmentToPrescribe(null)
+      await loadAppointments() // Reload appointments to reflect changes
+    } catch (error) {
+      console.error("Error linking prescription to appointment:", error)
+      toast({
+        title: "Error",
+        description: "Failed to link prescription to appointment.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const updateAppointmentStatus = async (appointmentId: string, status: Appointment["status"]) => {
     console.log("Calling appointmentsAPI.updateStatus with:", { appointmentId, status })
     try {
@@ -186,7 +202,7 @@ export default function DoctorAppointmentsPage() {
       case "pending":
         return "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
       case "cancelled":
-        return "bg-red-500/20 text-red-300 border-red-500/30"
+        return "bg-red-500/20 text-red-300 border-red-300"
       case "completed":
         return "bg-blue-500/20 text-blue-300 border-blue-500/30"
       default:
@@ -278,9 +294,13 @@ export default function DoctorAppointmentsPage() {
               <>
                 <Button
                   size="sm"
-                  onClick={() => updateAppointmentStatus(appointment.id, "completed")}
+                  onClick={() => {
+                    setAppointmentToPrescribe(appointment)
+                    setShowPrescriptionDialog(true)
+                  }}
                   className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                 >
+                  <FileText className="w-4 h-4 mr-2" />
                   Mark Complete
                 </Button>
                 <Dialog>
@@ -364,6 +384,16 @@ export default function DoctorAppointmentsPage() {
                 </Button>
               </>
             )}
+            {appointment.status === "completed" && appointment.prescriptionId && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => router.push(`/prescriptions/${appointment.prescriptionId}/edit`)}
+                className="w-full border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
+              >
+                <FileText className="w-4 h-4 mr-1" /> View Prescription
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
@@ -377,9 +407,9 @@ export default function DoctorAppointmentsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 bg-clip-text text-transparent mb-4">
-  My Appointments
-</h1>
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 bg-clip-text text-transparent mb-4">
+              My Appointments
+            </h1>
 
             <p className="text-slate-400 text-xl">Manage your patient appointments efficiently</p>
           </div>
@@ -489,6 +519,23 @@ export default function DoctorAppointmentsPage() {
             />
           )}
         </div>
+
+        {/* Prescription Dialog */}
+        {appointmentToPrescribe && (
+          <Dialog open={showPrescriptionDialog} onOpenChange={setShowPrescriptionDialog}>
+            <DialogContent className="max-w-xl md:max-w-2xl p-6 overflow-y-auto max-h-[90vh] bg-slate-800 border-slate-700">
+              <PrescriptionForm
+                appointmentId={appointmentToPrescribe.id}
+                patientId={appointmentToPrescribe.patientId}
+                patientName={appointmentToPrescribe.patientName}
+                doctorId={appointmentToPrescribe.doctorId}
+                doctorName={appointmentToPrescribe.doctorName}
+                onSuccess={handlePrescriptionSuccess}
+                onClose={() => setShowPrescriptionDialog(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </ProtectedRoute>
   )

@@ -1,5 +1,35 @@
-const BASE_URL = "https://doctor-api-u6mn.onrender.com"
+interface Medicine {
+  name: string
+  dosage: string
+  duration: string
+  notes: string
+  frequency: string
+}
 
+export interface Prescription {
+  id: string
+  appointmentId: string
+  patientId: string
+  doctorId: string
+  datePrescribed: string
+  medicines: Medicine[]
+  generalNotes?: string
+  patientName: string // Added for easier display
+  doctorName: string // Added for easier display
+  symptoms?: string
+  diagnosis?: string
+  // New fields for detailed prescription card
+  vitals?: {
+    temperature?: string
+    bp?: string
+    pulse?: string
+  }
+  testsRecommended?: string // Changed to string for simplicity in form, can be comma-separated
+  followUpDate?: string
+  doctorSignatureText?: string // For digital signature representation (doctor's name)
+}
+
+// Existing interfaces and types
 export interface Doctor {
   id: string
   name: string
@@ -10,6 +40,14 @@ export interface Doctor {
   experience: string
   clinicAddress: string
   availability?: TimeSlot[]
+  image?: string
+  rating?: number
+  reviewCount?: number
+  consultationFee?: number
+  videoConsultationFee?: number
+  about?: string
+  timeSlots?: string[]
+  consultationType?: string[]
 }
 
 export interface Patient {
@@ -17,6 +55,8 @@ export interface Patient {
   name: string
   email: string
   phone: string
+  age?: number // New field
+  gender?: "Male" | "Female" | "Other" // New field
 }
 
 export interface TimeSlot {
@@ -27,7 +67,7 @@ export interface TimeSlot {
   isBooked: boolean
 }
 
-export type AppointmentStatus = "pending" | "confirmed" | "cancelled" | "completed" | "approved" // Added 'approved'
+export type AppointmentStatus = "pending" | "confirmed" | "cancelled" | "completed" | "approved"
 
 export interface Appointment {
   id: string
@@ -39,11 +79,13 @@ export interface Appointment {
   doctorName: string
   patientName: string
   specialty: string
-  // New fields for tooltip - Make sure these are present in your JSON server data
   followUp?: string
   paymentStatus?: "paid" | "pending" | "failed"
   consultationType?: "video" | "call" | "clinic"
+  prescriptionId?: string // New field to link to prescription
 }
+
+const BASE_URL = "https://doctor-api-u6mn.onrender.com"
 
 // Check if JSON Server is running
 const checkServerStatus = async () => {
@@ -181,6 +223,18 @@ export const patientsAPI = {
       throw error
     }
   },
+  async getAll(): Promise<Patient[]> {
+    try {
+      const response = await fetch(`${BASE_URL}/patients`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch patients")
+      }
+      return response.json()
+    } catch (error) {
+      console.error("Error fetching patients:", error)
+      throw error
+    }
+  },
 }
 
 // Appointments API
@@ -228,6 +282,18 @@ export const appointmentsAPI = {
       }
       return response.json()
     } catch (error) {
+      console.error("Error fetching appointments:", error)
+      throw error
+    }
+  },
+  async getById(id: string): Promise<Appointment> {
+    try {
+      const response = await fetch(`${BASE_URL}/appointments/${id}`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch appointment")
+      }
+      return response.json()
+    } catch (error) {
       if (error instanceof TypeError && error.message.includes("fetch")) {
         throw new Error("Cannot connect to server. Please run 'npm run json-server' in a separate terminal.")
       }
@@ -239,11 +305,11 @@ export const appointmentsAPI = {
     console.log("New Date:", newDate, "New Time:", newTime)
     try {
       const response = await fetch(`${BASE_URL}/appointments/${id}`, {
-        method: "PATCH", // Use PATCH to update specific fields
+        method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ date: newDate, time: newTime, status: "pending" }), // Set status to pending
+        body: JSON.stringify({ date: newDate, time: newTime, status: "pending" }),
       })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: "Unknown error" }))
@@ -257,19 +323,114 @@ export const appointmentsAPI = {
       throw error
     }
   },
-  async updateStatus(id: string, status: Appointment["status"]): Promise<Appointment> {
+  async updateStatus(id: string, status: Appointment["status"], prescriptionId?: string): Promise<Appointment> {
     try {
+      const body: { status: Appointment["status"]; prescriptionId?: string } = { status }
+      if (prescriptionId) {
+        body.prescriptionId = prescriptionId
+      }
       const response = await fetch(`${BASE_URL}/appointments/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(body),
       })
       if (!response.ok) {
         throw new Error("Failed to update appointment")
       }
       return response.json()
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to server. Please run 'npm run json-server' in a separate terminal.")
+      }
+      throw error
+    }
+  },
+}
+
+// Prescriptions API
+export const prescriptionsAPI = {
+  async create(prescription: Omit<Prescription, "id">): Promise<Prescription> {
+    try {
+      const response = await fetch(`${BASE_URL}/prescriptions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...prescription, id: Date.now().toString() }),
+      })
+      if (!response.ok) {
+        throw new Error("Failed to create prescription")
+      }
+      return response.json()
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to server. Please run 'npm run json-server' in a separate terminal.")
+      }
+      throw error
+    }
+  },
+  async getAll(): Promise<Prescription[]> {
+    try {
+      const response = await fetch(`${BASE_URL}/prescriptions`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch prescriptions")
+      }
+      return response.json()
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to server. Please run 'npm run json-server' in a separate terminal.")
+      }
+      throw error
+    }
+  },
+  async getById(id: string): Promise<Prescription> {
+    try {
+      const response = await fetch(`${BASE_URL}/prescriptions/${id}`)
+      if (!response.ok) {
+        // If response is not ok, it means 404 or other error
+        if (response.status === 404) {
+          throw new Error(`Prescription with ID ${id} not found.`)
+        }
+        throw new Error(`Failed to fetch prescription: ${response.statusText}`)
+      }
+      return response.json()
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to server. Please run 'npm run json-server' in a separate terminal.")
+      }
+      throw error
+    }
+  },
+  async update(id: string, data: Partial<Prescription>): Promise<Prescription> {
+    try {
+      const response = await fetch(`${BASE_URL}/prescriptions/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      })
+      if (!response.ok) {
+        throw new Error("Failed to update prescription")
+      }
+      return response.json()
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to server. Please run 'npm run json-server' in a separate terminal.")
+      }
+      throw error
+    }
+  },
+  async delete(id: string): Promise<void> {
+    try {
+      const response = await fetch(`${BASE_URL}/prescriptions/${id}`, {
+        method: "DELETE",
+      })
+      if (!response.ok) {
+        throw new Error("Failed to delete prescription")
+      }
     } catch (error) {
       if (error instanceof TypeError && error.message.includes("fetch")) {
         throw new Error("Cannot connect to server. Please run 'npm run json-server' in a separate terminal.")
