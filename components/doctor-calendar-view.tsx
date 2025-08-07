@@ -1,43 +1,35 @@
 "use client"
+
 import { useState, useMemo, useCallback } from "react"
-import { Calendar, momentLocalizer } from "react-big-calendar"
+import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar"
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop"
 import moment from "moment"
 import { format, parseISO, setHours, setMinutes, setSeconds, setMilliseconds, addMinutes } from "date-fns"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import "@/app/styles/calendar.css"
-import { Edit, Trash2, Phone, Mail, User, CheckCircle, XCircle, Repeat } from "lucide-react"
-
+import { Edit, Trash2, Phone, Mail, User, CheckCircle, XCircle, Repeat } from 'lucide-react'
 // Import the CSS for react-big-calendar and drag and drop
 import "react-big-calendar/lib/css/react-big-calendar.css"
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css"
-
 // Import our custom calendar styles
 import { patientsAPI, type Appointment, type Patient } from "@/lib/api"
 
 const localizer = momentLocalizer(moment)
-const DnDCalendar = withDragAndDrop(Calendar)
+const DnDCalendar = withDragAndDrop(BigCalendar)
 
 interface DoctorCalendarViewProps {
   appointments: Appointment[]
   onReschedule: (appointmentId: string, newDate: string, newTime: string) => Promise<void>
   onUpdateStatus: (appointmentId: string, status: Appointment["status"]) => Promise<void>
+  onPrescribeAppointment: (appointment: Appointment) => void; // नया प्रॉप जोड़ा गया
 }
 
-export default function DoctorCalendarView({ appointments, onReschedule, onUpdateStatus }: DoctorCalendarViewProps) {
+export default function DoctorCalendarView({ appointments, onReschedule, onUpdateStatus, onPrescribeAppointment }: DoctorCalendarViewProps) {
   const { toast } = useToast()
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [rescheduleDate, setRescheduleDate] = useState("")
@@ -182,6 +174,7 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
         description: `Appointment for ${currentDetailsAppointment.patientName} marked as completed.`,
       })
       setIsPatientDetailsDialogOpen(false) // Close dialog
+      onPrescribeAppointment(currentDetailsAppointment); // प्रिस्क्रिप्शन फॉर्म खोलने के लिए कॉल करें
     } catch (error) {
       console.error("Error completing appointment from details dialog:", error)
       toast({
@@ -386,6 +379,7 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
           event: EventComponent,
         }}
         className="text-white"
+        style={{ height: "100%" }}
         eventPropGetter={(event) => {
           const appointment = event.resource as Appointment
           let backgroundColor = "#3B82F6" // Default blue, will be overridden
@@ -599,7 +593,7 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
                 </SelectTrigger>
                 <SelectContent className="bg-slate-700 border-slate-600">
                   {Array.from({ length: 16 }, (_, i) => {
-                    const hour = Math.floor(i / 2) + 7
+                    const hour = Math.floor(i / 2) + 7 // Start from 7 AM
                     const minute = (i % 2) * 30
                     const timeString = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
                     return (

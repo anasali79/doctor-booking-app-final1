@@ -8,8 +8,8 @@ import { Navbar } from "@/components/Navbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { prescriptionsAPI, patientsAPI, type Prescription, type Patient } from "@/lib/api"
-import { FileText, Edit, Trash2, Loader2, Calendar, User, ArrowLeft, Search, Filter } from 'lucide-react'
+import { prescriptionsAPI, patientsAPI, doctorsAPI, type Prescription, type Patient, type Doctor } from "@/lib/api"
+import { FileText, Edit, Trash2, Loader2, Calendar, User, ArrowLeft, Search, Filter, Phone, Stethoscope, Hospital, Eye } from 'lucide-react' // Eye icon जोड़ा गया
 import { useToast } from "@/hooks/use-toast"
 import {
   AlertDialog,
@@ -22,8 +22,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog, // Dialog components इम्पोर्ट किए गए
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import Image from "next/image"
+import { PrescriptionDetailView } from "@/components/PrescriptionDetailView" // नया घटक इम्पोर्ट किया गया
 
 export default function DoctorPrescriptionsPage() {
   const { user } = useAuth()
@@ -31,37 +39,43 @@ export default function DoctorPrescriptionsPage() {
   const { toast } = useToast()
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedDateFilter, setSelectedDateFilter] = useState<string>("") // YYYY-MM-DD
-  const [selectedDayFilter, setSelectedDayFilter] = useState<string>("all") // "all", "Monday", etc.
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string>("")
+  const [selectedDayFilter, setSelectedDayFilter] = useState<string>("all")
+
+  // State for Prescription Detail Dialog
+  const [showDetailDialog, setShowDetailDialog] = useState(false)
+  const [selectedPrescriptionForView, setSelectedPrescriptionForView] = useState<Prescription | null>(null)
 
   useEffect(() => {
     if (user) {
-      loadPrescriptionsAndPatients()
+      loadPrescriptionsAndPatientsAndDoctors()
     }
   }, [user])
 
-  const loadPrescriptionsAndPatients = async () => {
+  const loadPrescriptionsAndPatientsAndDoctors = async () => {
     setIsLoading(true)
     try {
-      const [prescriptionsData, patientsData] = await Promise.all([
+      const [prescriptionsData, patientsData, doctorsData] = await Promise.all([
         prescriptionsAPI.getAll(),
         patientsAPI.getAll(),
+        doctorsAPI.getAll(),
       ])
 
-      // Filter prescriptions by the current doctor's ID
       const doctorPrescriptions = prescriptionsData.filter(
         (p) => p.doctorId === user?.id,
       )
 
       setPrescriptions(doctorPrescriptions)
       setPatients(patientsData)
+      setDoctors(doctorsData)
     } catch (error) {
-      console.error("Failed to load prescriptions or patients:", error)
+      console.error("Failed to load data:", error)
       toast({
         title: "Error",
-        description: "Failed to load prescriptions. Please check your network and API.",
+        description: "Failed to load prescriptions, patients, or doctors. Please check your network and API.",
         variant: "destructive",
       })
     } finally {
@@ -76,7 +90,7 @@ export default function DoctorPrescriptionsPage() {
         title: "Success",
         description: "Prescription deleted successfully!",
       })
-      await loadPrescriptionsAndPatients() // Reload data
+      await loadPrescriptionsAndPatientsAndDoctors()
     } catch (error) {
       console.error("Failed to delete prescription:", error)
       toast({
@@ -87,9 +101,12 @@ export default function DoctorPrescriptionsPage() {
     }
   }
 
-  const getPatientName = (patientId: string) => {
-    const patient = patients.find((p) => p.id === patientId)
-    return patient ? patient.name : "Unknown Patient"
+  const getPatientDetails = (patientId: string) => {
+    return patients.find((p) => p.id === patientId)
+  }
+
+  const getDoctorDetails = (doctorId: string) => {
+    return doctors.find((d) => d.id === doctorId)
   }
 
   const getDayName = (dateString: string) => {
@@ -97,27 +114,23 @@ export default function DoctorPrescriptionsPage() {
     return date.toLocaleDateString('en-US', { weekday: 'long' });
   };
 
-  // Memoize filtered and grouped prescriptions to avoid re-calculation on every render
   const filteredAndGroupedPrescriptions = useMemo(() => {
     let currentFilteredPrescriptions = prescriptions;
 
-    // Apply date filter
     if (selectedDateFilter) {
       currentFilteredPrescriptions = currentFilteredPrescriptions.filter(
         (p) => p.datePrescribed === selectedDateFilter
       );
     }
 
-    // Apply day of week filter
     if (selectedDayFilter !== "all") {
       currentFilteredPrescriptions = currentFilteredPrescriptions.filter(
         (p) => getDayName(p.datePrescribed) === selectedDayFilter
       );
     }
 
-    // Group by patient name
     const grouped = currentFilteredPrescriptions.reduce((acc, prescription) => {
-      const patientName = getPatientName(prescription.patientId);
+      const patientName = getPatientDetails(prescription.patientId)?.name || "Unknown Patient";
       if (!acc[patientName]) {
         acc[patientName] = [];
       }
@@ -125,7 +138,6 @@ export default function DoctorPrescriptionsPage() {
       return acc;
     }, {} as Record<string, Prescription[]>);
 
-    // Apply search term to grouped patient names
     return Object.entries(grouped).filter(([patientName]) =>
       patientName.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -230,110 +242,150 @@ export default function DoctorPrescriptionsPage() {
                     <div className="flex-1 h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent" />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {patientPrescriptions.map((prescription) => (
-                      <Card
-                        key={prescription.id}
-                        className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm overflow-hidden"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                        <CardHeader className="relative">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg flex items-center text-white group-hover:text-blue-300 transition-colors">
-                              <FileText className="w-5 h-5 mr-2 text-blue-400" />
-                              Prescription
-                            </CardTitle>
-                            <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
-                              {prescription.datePrescribed}
-                            </Badge>
-                          </div>
-                          <CardDescription className="flex items-center text-slate-400 mt-2">
-                            <Calendar className="w-4 h-4 mr-2" />
-                            Appointment ID: {prescription.appointmentId}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="relative space-y-4">
-                          {prescription.symptoms && (
-                            <div>
-                              <h3 className="font-semibold text-slate-300 mb-1">Symptoms:</h3>
-                              <p className="text-slate-400 text-sm">{prescription.symptoms}</p>
+                    {patientPrescriptions.map((prescription) => {
+                      const patient = getPatientDetails(prescription.patientId);
+                      const doctor = getDoctorDetails(prescription.doctorId);
+
+                      return (
+                        <Card
+                          key={prescription.id}
+                          className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm overflow-hidden"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                          <CardHeader className="relative pb-3">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-lg flex items-center text-white group-hover:text-blue-300 transition-colors">
+                                <FileText className="w-5 h-5 mr-2 text-blue-400" />
+                                Prescription
+                              </CardTitle>
+                              <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                                {prescription.datePrescribed}
+                              </Badge>
                             </div>
-                          )}
-                          {prescription.diagnosis && (
-                            <div>
-                              <h3 className="font-semibold text-slate-300 mb-1">Diagnosis:</h3>
-                              <p className="text-slate-400 text-sm">{prescription.diagnosis}</p>
+                            {doctor && (
+                              <div className="text-slate-400 text-sm mt-2 space-y-1">
+                                <p className="font-semibold text-white flex items-center">
+                                  <Stethoscope className="w-4 h-4 mr-2 text-teal-400" />
+                                  {doctor.name}, {doctor.qualifications}
+                                </p>
+                                <p className="flex items-center">
+                                  <Hospital className="w-4 h-4 mr-2 text-purple-400" />
+                                  {doctor.specialty}
+                                </p>
+                              </div>
+                            )}
+                          </CardHeader>
+                          <CardContent className="relative space-y-4 pt-3">
+                            {/* Condensed View */}
+                            <div className="border-t border-slate-700/50 pt-4">
+                              <h3 className="font-semibold text-slate-300 mb-2">Patient: {patient?.name || "N/A"}</h3>
+                              {prescription.symptoms && (
+                                <div>
+                                  <h4 className="font-semibold text-slate-300 mb-1">Symptoms:</h4>
+                                  <p className="text-slate-400 text-sm line-clamp-2">{prescription.symptoms}</p>
+                                </div>
+                              )}
+                              {prescription.diagnosis && (
+                                <div>
+                                  <h4 className="font-semibold text-slate-300 mb-1">Diagnosis:</h4>
+                                  <p className="text-slate-400 text-sm line-clamp-1">{prescription.diagnosis}</p>
+                                </div>
+                              )}
+                              {prescription.vitals && (prescription.vitals.temperature || prescription.vitals.bp || prescription.vitals.pulse) && (
+                                <div>
+                                  <h4 className="font-semibold text-slate-300 mb-1">Vitals:</h4>
+                                  <p className="text-slate-400 text-sm">
+                                    {prescription.vitals.temperature && `Temp: ${prescription.vitals.temperature} `}
+                                    {prescription.vitals.bp && `BP: ${prescription.vitals.bp} `}
+                                    {prescription.vitals.pulse && `Pulse: ${prescription.vitals.pulse}`}
+                                  </p>
+                                </div>
+                              )}
                             </div>
-                          )}
-                          <div>
-                            <h3 className="font-semibold text-slate-300 mb-2">Medicines:</h3>
-                            <ul className="list-disc list-inside text-slate-400 text-sm space-y-1">
-                              {prescription.medicines.map((med, idx) => (
-                                <li key={idx}>
-                                  <span className="font-medium text-white">{med.name}</span>: {med.dosage},{" "}
-                                  {med.frequency} for {med.duration}
-                                  {med.notes && ` (${med.notes})`}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          {prescription.generalNotes && (
-                            <div>
-                              <h3 className="font-semibold text-slate-300 mb-2">General Notes:</h3>
-                              <p className="text-slate-400 text-sm italic">{prescription.generalNotes}</p>
-                            </div>
-                          )}
-                          <div className="flex gap-2 mt-4">
-                            <Button
-                              size="sm"
-                              className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                              onClick={() => {
-                                router.push(`/prescriptions/${prescription.id}/edit`)
-                              }}
-                            >
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="flex-1 bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30"
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Delete
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                  <AlertDialogDescription className="text-slate-400">
-                                    This action cannot be undone. This will permanently delete the prescription.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel className="border-slate-600 text-slate-300 hover:bg-slate-700/50">
-                                    Cancel
-                                  </AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDeletePrescription(prescription.id)}
-                                    className="bg-red-600 hover:bg-red-700"
+
+                            <div className="flex gap-2 mt-4">
+                              <Button
+                                size="sm"
+                                className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                                onClick={() => {
+                                  setSelectedPrescriptionForView(prescription);
+                                  setShowDetailDialog(true);
+                                }}
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                View
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                                onClick={() => {
+                                  console.log("Navigating to edit:", `/prescriptions/${prescription.id}/edit`);
+                                  router.push(`/prescriptions/${prescription.id}/edit`);
+                                }}
+                              >
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="flex-1 bg-red-500/20 text-red-300 border-red-500/30 hover:bg-red-500/30"
                                   >
+                                    <Trash2 className="w-4 h-4 mr-2" />
                                     Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="bg-slate-800 border-slate-700 text-white">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-slate-400">
+                                      This action cannot be undone. This will permanently delete the prescription.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel className="border-slate-600 text-slate-300 hover:bg-slate-700/50">
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeletePrescription(prescription.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        {/* Prescription Detail Dialog */}
+        {selectedPrescriptionForView && (
+          <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+            <DialogContent className="max-w-3xl p-0 overflow-hidden max-h-[90vh] bg-slate-800 border-slate-700">
+              <DialogHeader className="p-6 pb-0">
+                <DialogTitle className="sr-only">Prescription Details</DialogTitle>
+              </DialogHeader>
+              <div className="overflow-y-auto max-h-[calc(90vh-64px)]"> {/* Adjust height based on header */}
+                <PrescriptionDetailView
+                  prescription={selectedPrescriptionForView}
+                  patient={getPatientDetails(selectedPrescriptionForView.patientId)}
+                  doctor={getDoctorDetails(selectedPrescriptionForView.doctorId)}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </ProtectedRoute>
   )

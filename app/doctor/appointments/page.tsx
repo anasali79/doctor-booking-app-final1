@@ -7,8 +7,8 @@ import { Navbar } from "@/components/Navbar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { appointmentsAPI, Prescription, type Appointment } from "@/lib/api"
-import { CalendarIcon, Clock, User, CheckCircle, XCircle, Filter, Search, Phone, Mail, Edit, X, Video, Building, FileText } from 'lucide-react'
+import { appointmentsAPI, prescriptionsAPI, patientsAPI, doctorsAPI, type Appointment, type Prescription, type Patient, type Doctor } from "@/lib/api"
+import { CalendarIcon, Clock, User, CheckCircle, XCircle, Filter, Search, Phone, Mail, Edit, X, Video, Building, FileText, Eye } from 'lucide-react'
 import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -21,21 +21,24 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { useSearchParams } from "next/navigation"
-import { format } from "date-fns" // For date formatting
-import { useRouter } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
+import { format } from "date-fns"
 
-// Import the new calendar component
 import DoctorCalendarView from "@/components/doctor-calendar-view"
-import { PrescriptionForm } from "@/components/PrescriptionForm" // Import PrescriptionForm
+import { PrescriptionForm } from "@/components/PrescriptionForm"
+import { PrescriptionDetailView } from "@/components/PrescriptionDetailView"
+
+
 
 export default function DoctorAppointmentsPage() {
   const { user } = useAuth()
   const { toast } = useToast()
-  const router = useRouter()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([])
+  const [patients, setPatients] = useState<Patient[]>([])
+  const [doctors, setDoctors] = useState<Doctor[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState(searchParams?.get("filter") || "all")
@@ -44,46 +47,51 @@ export default function DoctorAppointmentsPage() {
   const [rescheduleTime, setRescheduleTime] = useState("")
   const [isRescheduling, setIsRescheduling] = useState(false)
 
-  // New state for calendar and time slot filtering
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined) // Default to undefined to show all initially
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState("all") // "all", "morning", "afternoon", "evening"
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState("all")
 
-  // New state to toggle between list and calendar view
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list")
 
   // State for Prescription Form Dialog
   const [showPrescriptionDialog, setShowPrescriptionDialog] = useState(false)
   const [appointmentToPrescribe, setAppointmentToPrescribe] = useState<Appointment | null>(null)
 
+  // State for Prescription Detail View Dialog
+  const [showPrescriptionDetailDialog, setShowPrescriptionDetailDialog] = useState(false)
+  const [selectedPrescriptionForView, setSelectedPrescriptionForView] = useState<Prescription | null>(null)
+
   useEffect(() => {
     if (user) {
-      loadAppointments()
+      loadAppointmentsAndRelatedData()
     }
   }, [user])
 
   useEffect(() => {
-    // Apply filters only if in list view, calendar handles its own date/time display
     if (viewMode === "list") {
       filterAppointments()
     } else {
-      // When in calendar view, the calendar component handles filtering by date/time
-      // We still need to pass the full appointments list to it.
       setFilteredAppointments(appointments)
     }
-  }, [appointments, searchTerm, statusFilter, selectedDate, selectedTimeSlot, viewMode]) // Added new dependencies and viewMode
+  }, [appointments, searchTerm, statusFilter, selectedDate, selectedTimeSlot, viewMode])
 
-  const loadAppointments = async () => {
+  const loadAppointmentsAndRelatedData = async () => {
     if (!user) return
-    setIsLoading(true) // Set loading true when starting to load
+    setIsLoading(true)
     try {
-      const appointmentsData = await appointmentsAPI.getByDoctorId(user.id)
+      const [appointmentsData, patientsData, doctorsData] = await Promise.all([
+        appointmentsAPI.getByDoctorId(user.id),
+        patientsAPI.getAll(),
+        doctorsAPI.getAll(),
+      ])
       setAppointments(appointmentsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()))
-      console.log("Appointments loaded:", appointmentsData) // Log loaded data
+      setPatients(patientsData)
+      setDoctors(doctorsData)
+      console.log("Appointments, Patients, Doctors loaded.")
     } catch (error) {
-      console.error("Failed to load appointments:", error) // Log error
+      console.error("Failed to load data:", error)
       toast({
         title: "Error",
-        description: "Failed to load appointments",
+        description: "Failed to load appointments or related data",
         variant: "destructive",
       })
     } finally {
@@ -93,33 +101,29 @@ export default function DoctorAppointmentsPage() {
 
   const filterAppointments = () => {
     let currentFiltered = appointments
-    // 1. Filter by selected date (only if a date is selected)
     if (selectedDate) {
-      const selectedDateString = format(selectedDate, "yyyy-MM-dd") // Format to YYYY-MM-DD
+      const selectedDateString = format(selectedDate, "yyyy-MM-dd")
       currentFiltered = currentFiltered.filter((apt) => apt.date === selectedDateString)
     }
-    // 2. Filter by time slot (only if a time slot is selected)
     if (selectedTimeSlot !== "all") {
       currentFiltered = currentFiltered.filter((apt) => {
         const [hours, minutes] = apt.time.split(":").map(Number)
-        const totalMinutes = hours * 60 + minutes // Convert time to minutes for easier comparison
+        const totalMinutes = hours * 60 + minutes
         if (selectedTimeSlot === "morning") {
-          return totalMinutes >= 9 * 60 && totalMinutes < 12 * 60 // 9:00 AM to 11:59 AM
+          return totalMinutes >= 9 * 60 && totalMinutes < 12 * 60
         } else if (selectedTimeSlot === "afternoon") {
-          return totalMinutes >= 12 * 60 && totalMinutes < 17 * 60 // 12:00 PM to 4:59 PM
+          return totalMinutes >= 12 * 60 && totalMinutes < 17 * 60
         } else if (selectedTimeSlot === "evening") {
-          return totalMinutes >= 17 * 60 && totalMinutes < 22 * 60 // 5:00 PM to 9:59 PM
+          return totalMinutes >= 17 * 60 && totalMinutes < 22 * 60
         }
         return true
       })
     }
-    // 3. Apply search term (original filter)
     if (searchTerm) {
       currentFiltered = currentFiltered.filter((apt) =>
         apt.patientName.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
-    // 4. Apply status filter (original filter)
     if (statusFilter !== "all") {
       currentFiltered = currentFiltered.filter((apt) => apt.status === statusFilter)
     }
@@ -131,13 +135,12 @@ export default function DoctorAppointmentsPage() {
     console.log("Calling appointmentsAPI.reschedule with:", { appointmentId, newDate, newTime })
     try {
       await appointmentsAPI.reschedule(appointmentId, newDate, newTime)
-      // Crucial: Re-fetch all appointments after a successful update
-      await loadAppointments()
+      await loadAppointmentsAndRelatedData()
       toast({
         title: "Success",
         description: "Appointment rescheduled successfully!",
       })
-      setSelectedAppointment(null) // Close dialog if opened from list view
+      setSelectedAppointment(null)
       setRescheduleDate("")
       setRescheduleTime("")
     } catch (error) {
@@ -152,11 +155,10 @@ export default function DoctorAppointmentsPage() {
     }
   }
 
-  const handlePrescriptionSuccess = async (prescription: Prescription) => {
+  const handlePrescriptionSuccess = async (prescription) => {
     if (!appointmentToPrescribe || !user) return
 
     try {
-      // Update appointment status to 'completed' and link prescription
       await appointmentsAPI.updateStatus(appointmentToPrescribe.id, "completed", prescription.id)
       toast({
         title: "Success",
@@ -164,7 +166,7 @@ export default function DoctorAppointmentsPage() {
       })
       setShowPrescriptionDialog(false)
       setAppointmentToPrescribe(null)
-      await loadAppointments() // Reload appointments to reflect changes
+      await loadAppointmentsAndRelatedData()
     } catch (error) {
       console.error("Error linking prescription to appointment:", error)
       toast({
@@ -179,8 +181,7 @@ export default function DoctorAppointmentsPage() {
     console.log("Calling appointmentsAPI.updateStatus with:", { appointmentId, status })
     try {
       await appointmentsAPI.updateStatus(appointmentId, status)
-      // Crucial: Re-fetch all appointments after a successful update
-      await loadAppointments()
+      await loadAppointmentsAndRelatedData()
       toast({
         title: "Success",
         description: `Appointment ${status} successfully!`,
@@ -194,6 +195,27 @@ export default function DoctorAppointmentsPage() {
       })
     }
   }
+
+  const handleViewPrescription = async (prescriptionId: string) => {
+    try {
+      const prescriptionData = await prescriptionsAPI.getById(prescriptionId)
+      setSelectedPrescriptionForView(prescriptionData)
+      setShowPrescriptionDetailDialog(true)
+    } catch (error) {
+      console.error("Failed to load prescription for view:", error)
+      toast({
+        title: "Error",
+        description: `Failed to load prescription: ${error instanceof Error ? error.message : "Unknown error"}`,
+        variant: "destructive",
+      })
+    }
+  }
+
+  // New handler to pass to DoctorCalendarView for opening prescription form
+  const handlePrescribeAppointmentFromCalendar = (appointment: Appointment) => {
+    setAppointmentToPrescribe(appointment);
+    setShowPrescriptionDialog(true);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -388,10 +410,10 @@ export default function DoctorAppointmentsPage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => router.push(`/prescriptions/${appointment.prescriptionId}/edit`)}
+                onClick={() => handleViewPrescription(appointment.prescriptionId!)}
                 className="w-full border-blue-500/30 text-blue-300 hover:bg-blue-500/10"
               >
-                <FileText className="w-4 h-4 mr-1" /> View Prescription
+                <Eye className="w-4 h-4 mr-1" /> View Prescription
               </Button>
             )}
           </div>
@@ -512,10 +534,11 @@ export default function DoctorAppointmentsPage() {
             </div>
           ) : (
             <DoctorCalendarView
-              key={appointments.length > 0 ? appointments[0].id : "no-appointments"} // Forces re-render when appointments change
+              key={appointments.length > 0 ? appointments[0].id : "no-appointments"}
               appointments={appointments}
               onReschedule={handleReschedule}
               onUpdateStatus={updateAppointmentStatus}
+              onPrescribeAppointment={handlePrescribeAppointmentFromCalendar}
             />
           )}
         </div>
@@ -533,6 +556,24 @@ export default function DoctorAppointmentsPage() {
                 onSuccess={handlePrescriptionSuccess}
                 onClose={() => setShowPrescriptionDialog(false)}
               />
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Prescription Detail View Dialog */}
+        {selectedPrescriptionForView && (
+          <Dialog open={showPrescriptionDetailDialog} onOpenChange={setShowPrescriptionDetailDialog}>
+            <DialogContent className="max-w-3xl p-0 overflow-hidden max-h-[90vh] bg-slate-800 border-slate-700">
+              <DialogHeader className="p-6 pb-0">
+                <DialogTitle className="sr-only">Prescription Details</DialogTitle>
+              </DialogHeader>
+              <div className="overflow-y-auto max-h-[calc(90vh-64px)]">
+                <PrescriptionDetailView
+                  prescription={selectedPrescriptionForView}
+                  patient={patients.find(p => p.id === selectedPrescriptionForView.patientId)}
+                  doctor={doctors.find(d => d.id === selectedPrescriptionForView.doctorId)}
+                />
+              </div>
             </DialogContent>
           </Dialog>
         )}

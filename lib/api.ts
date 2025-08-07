@@ -12,6 +12,7 @@ export interface Prescription {
   patientId: string
   doctorId: string
   datePrescribed: string
+  timePrescribed?: string
   medicines: Medicine[]
   generalNotes?: string
   patientName: string // Added for easier display
@@ -83,6 +84,7 @@ export interface Appointment {
   paymentStatus?: "paid" | "pending" | "failed"
   consultationType?: "video" | "call" | "clinic"
   prescriptionId?: string // New field to link to prescription
+  fee?: number
 }
 
 const BASE_URL = "https://doctor-api-u6mn.onrender.com"

@@ -1,5 +1,4 @@
 "use client"
-
 import { useEffect, useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
@@ -9,26 +8,17 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { appointmentsAPI, doctorsAPI, type Appointment } from "@/lib/api"
+import { appointmentsAPI, doctorsAPI, patientsAPI, prescriptionsAPI, type Appointment, type Prescription } from "@/lib/api"
 import { Listbox, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { ChevronUpDownIcon, CheckIcon } from "@heroicons/react/20/solid";
-import {
-  Calendar,
-  Clock,
-  Stethoscope,
-  Video,
-  Phone,
-  Building,
-  RotateCcw,
-  X,
-  CheckCircle,
-  AlertCircle,
-} from "lucide-react"
+import { Calendar, Clock, Stethoscope, Video, Phone, Building, RotateCcw, X, CheckCircle, AlertCircle, FileText, Download, Printer } from 'lucide-react'
 import { useToast } from "@/hooks/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
+import { PrescriptionDetailView } from "@/components/PrescriptionDetailView"
+import { generatePrescriptionPdf, printPrescription } from "@/lib/prescription-utils" // Import new utilities
 
 export default function AppointmentsPage() {
   const { user } = useAuth()
@@ -41,6 +31,13 @@ export default function AppointmentsPage() {
   const [isCancelling, setIsCancelling] = useState(false)
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
+
+  // New states for prescription viewing
+  const [showPrescriptionDialog, setShowPrescriptionDialog] = useState(false)
+  const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null)
+  const [prescriptionPatient, setPrescriptionPatient] = useState<any>(null)
+  const [prescriptionDoctor, setPrescriptionDoctor] = useState<any>(null)
+  const [isLoadingPrescription, setIsLoadingPrescription] = useState(false)
 
   // Reschedule form states
   const [newDate, setNewDate] = useState("")
@@ -75,17 +72,14 @@ export default function AppointmentsPage() {
       const doctor = await doctorsAPI.getById(doctorId)
       const dates = []
       const today = new Date()
-
       for (let i = 1; i < 15; i++) {
         // Start from tomorrow
         const date = new Date(today)
         date.setDate(today.getDate() + i)
         const dayName = date.toLocaleDateString("en-US", { weekday: "long" })
-
         // Check if doctor is available on this day
         const isAvailable =
           doctor?.availability?.clinic?.includes(dayName) || doctor?.availability?.online?.includes(dayName)
-
         if (isAvailable) {
           dates.push({
             date: date.toISOString().split("T")[0],
@@ -98,7 +92,6 @@ export default function AppointmentsPage() {
           })
         }
       }
-
       setAvailableDates(dates)
       setAvailableTimes(doctor?.timeSlots || [])
     } catch (error) {
@@ -191,28 +184,24 @@ export default function AppointmentsPage() {
       })
       return
     }
-
     setIsRescheduling(true)
     try {
       // Simulate API call to reschedule
       await new Promise((resolve) => setTimeout(resolve, 2000))
-
       // Update appointment with new date and time
       const updatedAppointments = appointments.map((apt) =>
         apt.id === selectedAppointment.id
           ? {
-            ...apt,
-            date: newDate,
-            time: newTime,
-            status: "rescheduled" as const, // Changed from "confirmed" to "rescheduled"
-          }
+              ...apt,
+              date: newDate,
+              time: newTime,
+              status: "rescheduled" as const, // Changed from "confirmed" to "rescheduled"
+            }
           : apt,
       )
-
       setAppointments(updatedAppointments)
       setShowRescheduleDialog(false)
       setSelectedAppointment(null)
-
       toast({
         title: "Success",
         description: `Appointment rescheduled to ${new Date(newDate).toLocaleDateString()} at ${newTime}. Check the Rescheduled tab.`,
@@ -235,21 +224,17 @@ export default function AppointmentsPage() {
 
   const handleCancelConfirm = async () => {
     if (!selectedAppointment) return
-
     setIsCancelling(true)
     try {
       // Simulate API call to cancel
       await new Promise((resolve) => setTimeout(resolve, 1500))
-
       // Update appointment status to cancelled
       const updatedAppointments = appointments.map((apt) =>
         apt.id === selectedAppointment.id ? { ...apt, status: "cancelled" as const } : apt,
       )
-
       setAppointments(updatedAppointments)
       setShowCancelDialog(false)
       setSelectedAppointment(null)
-
       toast({
         title: "Success",
         description: "Appointment cancelled successfully!",
@@ -264,6 +249,66 @@ export default function AppointmentsPage() {
       setIsCancelling(false)
     }
   }
+
+  // New function to handle viewing prescription
+  const handleViewPrescription = async (appointment: Appointment) => {
+    if (!appointment.prescriptionId) {
+      toast({
+        title: "No Prescription",
+        description: "No prescription found for this appointment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoadingPrescription(true);
+    try {
+      const prescription = await prescriptionsAPI.getById(appointment.prescriptionId);
+      const patient = await patientsAPI.getById(appointment.patientId);
+      const doctor = await doctorsAPI.getById(appointment.doctorId);
+
+      setSelectedPrescription(prescription);
+      setPrescriptionPatient(patient);
+      setPrescriptionDoctor(doctor);
+      setShowPrescriptionDialog(true);
+    } catch (error) {
+      console.error("Failed to load prescription details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load prescription details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPrescription(false);
+    }
+  };
+
+  // New function to handle downloading prescription as PDF
+  const handleDownloadPdf = () => {
+    if (selectedPrescription && prescriptionPatient && prescriptionDoctor) {
+      generatePrescriptionPdf(selectedPrescription, prescriptionPatient, prescriptionDoctor);
+    } else {
+      toast({
+        title: "Error",
+        description: "Prescription data not available for download.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // New function to handle printing prescription
+  const handlePrint = () => {
+    if (selectedPrescription) {
+      printPrescription(selectedPrescription.id); // Pass the ID of the prescription card element
+    } else {
+      toast({
+        title: "Error",
+        description: "Prescription data not available for printing.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   const tabOptions = [
     { id: "upcoming", label: "Upcoming", count: filterAppointments("upcoming").length, color: "text-blue-600" },
@@ -347,7 +392,6 @@ export default function AppointmentsPage() {
               Manage your healthcare appointments with ease
             </p>
           </motion.div>
-
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -363,14 +407,12 @@ export default function AppointmentsPage() {
                         className={`block truncate font-semibold ${tabOptions.find((opt) => opt.id === activeTab)?.color || "text-gray-900"
                           }`}
                       >
-                        {tabOptions.find((opt) => opt.id === activeTab)?.label} (
-                        {tabOptions.find((opt) => opt.id === activeTab)?.count})
+                        {tabOptions.find((opt) => opt.id === activeTab)?.label} ({tabOptions.find((opt) => opt.id === activeTab)?.count})
                       </span>
                       <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                         <ChevronUpDownIcon className="h-5 w-5 text-gray-400 transition-transform duration-300 group-open:rotate-180" />
                       </span>
                     </Listbox.Button>
-
                     {/* Dropdown Animation */}
                     <Transition
                       as={Fragment}
@@ -425,7 +467,6 @@ export default function AppointmentsPage() {
                     </motion.div>
                   </motion.div>
                 </TabsTrigger>
-
                 <TabsTrigger
                   value="completed"
                   className="flex items-center justify-center gap-2 px-4 py-3 sm:px-6 w-full sm:w-auto rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-500 hover:bg-green-50 group">
@@ -440,7 +481,6 @@ export default function AppointmentsPage() {
                     </motion.div>
                   </motion.div>
                 </TabsTrigger>
-
                 <TabsTrigger
                   value="cancelled"
                   className="flex items-center justify-center gap-2 px-4 py-3 sm:px-6 w-full sm:w-auto rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-500 hover:bg-red-50 group">
@@ -455,7 +495,6 @@ export default function AppointmentsPage() {
                     </motion.div>
                   </motion.div>
                 </TabsTrigger>
-
                 <TabsTrigger
                   value="rescheduled"
                   className="flex items-center justify-center gap-2 px-4 py-3 sm:px-6 w-full sm:w-auto rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-500 hover:bg-purple-50 group">
@@ -471,7 +510,6 @@ export default function AppointmentsPage() {
                   </motion.div>
                 </TabsTrigger>
               </TabsList>
-
               <AnimatePresence mode="wait">
                 {["upcoming", "completed", "cancelled", "rescheduled"].map((tab) => (
                   <TabsContent key={tab} value={tab} className="mt-0">
@@ -573,7 +611,6 @@ export default function AppointmentsPage() {
                                         : "bg-gradient-to-r from-purple-400 to-purple-600"
                                   }`}
                               />
-
                               <CardHeader className="pb-3">
                                 <div className="flex items-start justify-between">
                                   <div className="flex items-center space-x-3">
@@ -698,6 +735,48 @@ export default function AppointmentsPage() {
                                       </motion.div>
                                     </motion.div>
                                   )}
+                                {tab === "completed" && appointment.status === "completed" && (
+                                  <motion.div
+                                    className="flex gap-2 pt-3 border-t border-gray-100"
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.4 }}
+                                  >
+                                    <motion.div
+                                      whileHover={{ scale: 1.05 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      className="flex-1"
+                                    >
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full border-green-200 text-green-600 hover:bg-green-50 bg-transparent hover:border-green-300 transition-all duration-300"
+                                        onClick={() => handleViewPrescription(appointment)}
+                                        disabled={isLoadingPrescription}
+                                      >
+                                        {isLoadingPrescription ? (
+                                          <>
+                                            <motion.div
+                                              animate={{ rotate: 360 }}
+                                              transition={{
+                                                duration: 1,
+                                                repeat: Number.POSITIVE_INFINITY,
+                                                ease: "linear",
+                                              }}
+                                              className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full mr-2"
+                                            />
+                                            Loading...
+                                          </>
+                                        ) : (
+                                          <>
+                                            <FileText className="w-4 h-4 mr-1" />
+                                            View Prescription
+                                          </>
+                                        )}
+                                      </Button>
+                                    </motion.div>
+                                  </motion.div>
+                                )}
                               </CardContent>
                             </Card>
                           </motion.div>
@@ -710,7 +789,6 @@ export default function AppointmentsPage() {
             </Tabs>
           </motion.div>
         </div>
-
         {/* Reschedule Dialog */}
         <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
           <DialogContent className="sm:max-w-md">
@@ -723,7 +801,6 @@ export default function AppointmentsPage() {
                 Select a new date and time for your appointment with Dr. {selectedAppointment?.doctorName}
               </DialogDescription>
             </DialogHeader>
-
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="date">Select New Date</Label>
@@ -740,7 +817,6 @@ export default function AppointmentsPage() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="time">Select New Time</Label>
                 <Select value={newTime} onValueChange={setNewTime} disabled={!newDate}>
@@ -756,7 +832,6 @@ export default function AppointmentsPage() {
                   </SelectContent>
                 </Select>
               </div>
-
               {newDate && newTime && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -775,7 +850,6 @@ export default function AppointmentsPage() {
                 </motion.div>
               )}
             </div>
-
             <div className="flex gap-3">
               <Button
                 onClick={handleRescheduleConfirm}
@@ -813,7 +887,6 @@ export default function AppointmentsPage() {
             </div>
           </DialogContent>
         </Dialog>
-
         {/* Cancel Dialog */}
         <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
           <DialogContent className="sm:max-w-md">
@@ -827,7 +900,6 @@ export default function AppointmentsPage() {
                 cannot be undone.
               </DialogDescription>
             </DialogHeader>
-
             {selectedAppointment && (
               <div className="py-4">
                 <div className="p-4 bg-red-50 rounded-lg border border-red-200">
@@ -852,7 +924,6 @@ export default function AppointmentsPage() {
                 </div>
               </div>
             )}
-
             <div className="flex gap-3">
               <Button variant="destructive" onClick={handleCancelConfirm} disabled={isCancelling} className="flex-1">
                 {isCancelling ? (
@@ -884,6 +955,50 @@ export default function AppointmentsPage() {
                 Keep Appointment
               </Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Prescription Dialog */}
+        <Dialog open={showPrescriptionDialog} onOpenChange={setShowPrescriptionDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-green-600" />
+                Prescription Details
+              </DialogTitle>
+              <DialogDescription>
+                View your prescription details for this completed appointment
+              </DialogDescription>
+            </DialogHeader>
+            {selectedPrescription && (
+              <div className="py-4" id={`prescription-card-${selectedPrescription.id}`}> {/* Add ID for printing */}
+                <PrescriptionDetailView
+                  prescription={selectedPrescription}
+                  patient={prescriptionPatient}
+                  doctor={prescriptionDoctor}
+                />
+              </div>
+            )}
+            <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={handleDownloadPdf}
+                disabled={isLoadingPrescription || !selectedPrescription}
+                className="w-full sm:w-auto"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download PDF
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handlePrint}
+                disabled={isLoadingPrescription || !selectedPrescription}
+                className="w-full sm:w-auto"
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Print
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
