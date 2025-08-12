@@ -3,33 +3,53 @@
 import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/AuthContext"
+import { User, Mail, Phone, Eye, EyeOff, Stethoscope, GraduationCap, Briefcase, MapPin, Heart } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
+import { AnimatedInput } from "@/components/ui/animated-input"
+import { AnimatedSelect } from "@/components/ui/animated-select"
+// Fixed import paths to use correct API location
 import { authAPI } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
-import { Heart, User, Mail, Phone, Lock, Stethoscope, GraduationCap, MapPin, Clock, Eye, EyeOff } from "lucide-react"
-import { ServerStatus } from "@/components/ServerStatus"
+import { useAuth } from "@/contexts/AuthContext"
+import { toast } from "sonner"
 
-// Add this function at the top of the component, after the imports
-const testConnection = async () => {
-  try {
-    const response = await fetch("https://server-side-api-pelg.onrender.com/doctors", { method: "HEAD" })
-    return response.ok
-  } catch (error) {
-    return false
-  }
-}
+const medicalSpecialties = [
+  { value: "cardiology", label: "Cardiology" },
+  { value: "dermatology", label: "Dermatology" },
+  { value: "endocrinology", label: "Endocrinology" },
+  { value: "gastroenterology", label: "Gastroenterology" },
+  { value: "neurology", label: "Neurology" },
+  { value: "oncology", label: "Oncology" },
+  { value: "ophthalmology", label: "Ophthalmology" },
+  { value: "orthopedics", label: "Orthopedics" },
+  { value: "pediatrics", label: "Pediatrics" },
+  { value: "psychiatry", label: "Psychiatry" },
+  { value: "pulmonology", label: "Pulmonology" },
+  { value: "radiology", label: "Radiology" },
+  { value: "rheumatology", label: "Rheumatology" },
+  { value: "urology", label: "Urology" },
+]
+
+const qualifications = [
+  { value: "mbbs", label: "MBBS" },
+  { value: "md", label: "MD" },
+  { value: "ms", label: "MS" },
+  { value: "dm", label: "DM" },
+  { value: "mch", label: "MCh" },
+]
+
+const experienceOptions = [
+  { value: "1-3", label: "1-3 years" },
+  { value: "3-5", label: "3-5 years" },
+  { value: "5-10", label: "5-10 years" },
+  { value: "10+", label: "10+ years" },
+]
 
 export default function AuthPage() {
+  const [role, setRole] = useState<"patient" | "doctor">("patient")
   const [isLogin, setIsLogin] = useState(true)
-  const [isDoctor, setIsDoctor] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
@@ -41,630 +61,636 @@ export default function AuthPage() {
     experience: "",
     clinicAddress: "",
   })
-
+  const [isLoading, setIsLoading] = useState(false)
+  // Added useAuth hook to access authentication context
   const { login } = useAuth()
   const router = useRouter()
-  const { toast } = useToast()
 
-  // Update the handleSubmit function to test connection first
+  const handleInputChange = (key: string, value: string) => {
+    setFormData({
+      ...formData,
+      [key]: value,
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      // Test connection first
-      const isConnected = await testConnection()
-      if (!isConnected) {
-        throw new Error("Cannot connect to server. Please make sure JSON Server is running on port 3001.")
-      }
-
       if (isLogin) {
-        const user = await authAPI.login(formData.email, formData.password, isDoctor ? "doctor" : "patient")
-        login(user)
-        router.push(isDoctor ? "/doctor/dashboard" : "/")
-        toast({
-          title: "Welcome back!",
-          description: "You have been logged in successfully.",
-        })
+        // Updated to use authAPI from lib/api and login from AuthContext
+        const response = await authAPI.login(formData.email, formData.password, role)
+        if (response.success && response.user) {
+          login(response.user)
+        toast("Login successful!", {
+            description: "Welcome back to MediCare!",
+            duration: 3000,
+          })
+          router.push("/")
+        } else {
+          alert(response.message || "Login failed")
+        }
       } else {
-        const user = await authAPI.signup(formData, isDoctor ? "doctor" : "patient")
-        login(user)
-        router.push(isDoctor ? "/doctor/dashboard" : "/")
-        toast({
-          title: "Account created!",
-          description: "Your account has been created successfully.",
-        })
+        // Signup logic
+        const signupData = {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+          ...(role === "doctor" && {
+            specialty: formData.specialty,
+            qualifications: formData.qualifications,
+            experience: formData.experience,
+            clinicAddress: formData.clinicAddress,
+          }),
+        }
+
+        const response = await authAPI.signup(signupData, role)
+        if (response.success && response.user) {
+          login(response.user)
+          toast("Signup successful!", {
+            description: "Welcome to MediCare!",
+            duration: 3000,
+          })
+          router.push("/")
+        } else {
+          alert(response.message || "Signup failed")
+        }
       }
     } catch (error) {
       console.error("Auth error:", error)
-      toast({
-        title: "Authentication Error",
-        description: error instanceof Error ? error.message : "Authentication failed. Please try again.",
-        variant: "destructive",
-      })
+      alert("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
   return (
-    <>
-      {/* Desktop Layout - Split Screen */}
-      <div className="hidden lg:flex min-h-screen bg-white">
-        {/* Left Side - Welcome Text */}
-        <div className="flex-1 bg-white flex items-start justify-center pt-32 p-12 relative overflow-hidden">
-          {/* Welcome Text Upper Center */}
-          <div className="relative z-10 text-center text-gray-800 animate-fadeInUp">
-            <div className="flex items-center justify-center space-x-3 mb-8">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-2xl">
-                <Heart className="w-10 h-10 text-white" />
-              </div>
-              <span className="text-5xl font-bold text-gray-800">
-                Medi<span className="text-blue-500">Care</span>
-              </span>
-            </div>
-            <h2 className="text-4xl font-bold mb-6 text-gray-800">Welcome to MediCare</h2>
-            <p className="text-xl text-gray-600 max-w-lg leading-relaxed">
-              Your trusted healthcare companion. Connect with qualified doctors and manage your health journey with
-              ease.
-            </p>
-          </div>
-        </div>
-
-        {/* Right Side - Animated Form */}
-        <div className="flex-1 bg-white flex items-center justify-center p-12 relative overflow-hidden">
-          <div className="relative z-10 w-full max-w-md">
-            {/* Header */}
-            <div className="text-center mb-8 animate-fadeInUp">
-              <div className="flex items-center justify-center space-x-3 mb-6">
-                <div className="w-14 h-14 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-2xl">
-                  <Heart className="w-8 h-8 text-white" />
-                </div>
-                <span className="text-4xl font-bold text-gray-800">
-                  Medi<span className="text-blue-500">Care</span>
-                </span>
-              </div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">{isLogin ? "Welcome Back!" : "Join MediCare"}</h1>
-              <p className="text-gray-600">
-                {isLogin ? "Sign in to continue your health journey" : "Start your healthcare journey today"}
-              </p>
-            </div>
-
-            {/* Main Card */}
-            <Card className="bg-gray-50 border-gray-200 shadow-2xl animate-fadeInUp animation-delay-200">
-              <CardContent className="p-8">
-                {/* Role Toggle */}
-                <div className="flex items-center justify-center space-x-6 mb-8 p-4 bg-gray-100 rounded-2xl">
-                  <div
-                    className={`flex items-center space-x-2 transition-all duration-300 ${!isDoctor ? "text-blue-500 scale-110" : "text-gray-500"}`}
-                  >
-                    <User className="w-5 h-5" />
-                    <Label htmlFor="role-switch" className="font-semibold cursor-pointer">
-                      Patient
-                    </Label>
-                  </div>
-                  <Switch
-                    id="role-switch"
-                    checked={isDoctor}
-                    onCheckedChange={setIsDoctor}
-                    className="data-[state=checked]:bg-purple-600 data-[state=unchecked]:bg-blue-600"
-                  />
-                  <div
-                    className={`flex items-center space-x-2 transition-all duration-300 ${isDoctor ? "text-purple-500 scale-110" : "text-gray-500"}`}
-                  >
-                    <Stethoscope className="w-5 h-5" />
-                    <Label htmlFor="role-switch" className="font-semibold cursor-pointer">
-                      Doctor
-                    </Label>
-                  </div>
-                </div>
-
-                {/* Auth Toggle Buttons */}
-                <div className="flex bg-gray-100 rounded-2xl p-1 mb-8">
-                  <button
-                    type="button"
-                    onClick={() => setIsLogin(true)}
-                    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all duration-300 ${
-                      isLogin ? "bg-white text-gray-900 shadow-lg" : "text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    Sign In
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsLogin(false)}
-                    className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all duration-300 ${
-                      !isLogin ? "bg-white text-gray-900 shadow-lg" : "text-gray-600 hover:bg-gray-200"
-                    }`}
-                  >
-                    Sign Up
-                  </button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {!isLogin && (
-                    <div className="animate-slideInLeft">
-                      <Label htmlFor="name" className="text-gray-700 font-medium">
-                        Full Name
-                      </Label>
-                      <div className="relative mt-2">
-                        <User className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                        <Input
-                          id="name"
-                          type="text"
-                          value={formData.name}
-                          onChange={(e) => handleInputChange("name", e.target.value)}
-                          className="pl-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                          placeholder="Enter your full name"
-                          required
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="animate-slideInLeft animation-delay-100">
-                    <Label htmlFor="email" className="text-gray-700 font-medium">
-                      Email Address
-                    </Label>
-                    <div className="relative mt-2">
-                      <Mail className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange("email", e.target.value)}
-                        className="pl-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                        placeholder="Enter your email"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  {!isLogin && (
-                    <div className="animate-slideInLeft animation-delay-200">
-                      <Label htmlFor="phone" className="text-gray-700 font-medium">
-                        Phone Number
-                      </Label>
-                      <div className="relative mt-2">
-                        <Phone className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(e) => handleInputChange("phone", e.target.value)}
-                          className="pl-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                          placeholder="Enter your phone number"
-                          required
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="animate-slideInLeft animation-delay-300">
-                    <Label htmlFor="password" className="text-gray-700 font-medium">
-                      Password
-                    </Label>
-                    <div className="relative mt-2">
-                      <Lock className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={formData.password}
-                        onChange={(e) => handleInputChange("password", e.target.value)}
-                        className="pl-12 pr-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                        placeholder="Enter your password"
-                        required
-                        minLength={6}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {!isLogin && isDoctor && (
-                    <div className="space-y-6 animate-slideInLeft animation-delay-400">
-                      <div>
-                        <Label htmlFor="specialty" className="text-gray-700 font-medium">
-                          Medical Specialty
-                        </Label>
-                        <div className="relative mt-2">
-                          <Select onValueChange={(value) => handleInputChange("specialty", value)}>
-                            <SelectTrigger className="h-14 bg-white border-gray-300 text-gray-900 focus:border-purple-500 focus:ring-purple-500 rounded-xl">
-                              <SelectValue placeholder="Select your specialty" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white border-gray-200">
-                              <SelectItem value="cardiology">Cardiology</SelectItem>
-                              <SelectItem value="dermatology">Dermatology</SelectItem>
-                              <SelectItem value="neurology">Neurology</SelectItem>
-                              <SelectItem value="orthopedics">Orthopedics</SelectItem>
-                              <SelectItem value="pediatrics">Pediatrics</SelectItem>
-                              <SelectItem value="psychiatry">Psychiatry</SelectItem>
-                              <SelectItem value="general">General Medicine</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="qualifications" className="text-gray-700 font-medium">
-                          Qualifications
-                        </Label>
-                        <div className="relative mt-2">
-                          <GraduationCap className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                          <Input
-                            id="qualifications"
-                            type="text"
-                            value={formData.qualifications}
-                            onChange={(e) => handleInputChange("qualifications", e.target.value)}
-                            className="pl-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 rounded-xl"
-                            placeholder="e.g., MD, MBBS, Specialist"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="experience" className="text-gray-700 font-medium">
-                          Experience
-                        </Label>
-                        <div className="relative mt-2">
-                          <Clock className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                          <Input
-                            id="experience"
-                            type="text"
-                            value={formData.experience}
-                            onChange={(e) => handleInputChange("experience", e.target.value)}
-                            className="pl-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 rounded-xl"
-                            placeholder="e.g., 5 years"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="clinicAddress" className="text-gray-700 font-medium">
-                          Clinic Address
-                        </Label>
-                        <div className="relative mt-2">
-                          <MapPin className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                          <Textarea
-                            id="clinicAddress"
-                            value={formData.clinicAddress}
-                            onChange={(e) => handleInputChange("clinicAddress", e.target.value)}
-                            className="pl-12 min-h-[100px] bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 rounded-xl resize-none"
-                            placeholder="Enter your clinic address"
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className={`w-full h-14 text-lg font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 ${
-                      isDoctor
-                        ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                        : "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-                    } shadow-2xl animate-slideInUp animation-delay-500 text-white`}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>Please wait...</span>
-                      </div>
-                    ) : (
-                      `${isLogin ? "Sign In" : "Create Account"} as ${isDoctor ? "Doctor" : "Patient"}`
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-            <ServerStatus />
-
-            {/* Demo Credentials */}
-            <div className="mt-6 p-6 bg-gray-50 rounded-2xl border border-gray-200 animate-fadeInUp animation-delay-600">
-              <h3 className="font-bold text-gray-800 mb-3 text-center">🚀 Demo Credentials</h3>
-              <div className="grid grid-cols-1 gap-3 text-sm">
-                <div className="bg-blue-50 p-3 rounded-xl border border-blue-200">
-                  <p className="text-blue-700 font-semibold">👨‍⚕️ Doctor Account</p>
-                  <p className="text-gray-700">sarah@example.com / password123</p>
-                </div>
-                <div className="bg-green-50 p-3 rounded-xl border border-green-200">
-                  <p className="text-green-700 font-semibold">🏥 Patient Account</p>
-                  <p className="text-gray-700">john@example.com / password123</p>
-                </div>
-              </div>
-            </div>
-
-          </div>
-          </div>
-        </div>
-  
-
-      {/* Mobile Layout - Full Experience */}
-      <div className="lg:hidden min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="relative z-10 w-full max-w-md">
-          {/* Header */}
-          <div className="text-center mb-8 animate-fadeInUp">
-            <div className="flex items-center justify-center space-x-3 mb-6">
-              <div className="w-14 h-14 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-2xl">
-                <Heart className="w-8 h-8 text-white" />
-              </div>
-              <span className="text-4xl font-bold text-gray-800">
-                Medi<span className="text-blue-500">Care</span>
-              </span>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">{isLogin ? "Welcome Back!" : "Join MediCare"}</h1>
-            <p className="text-gray-600">
-              {isLogin ? "Sign in to continue your health journey" : "Start your healthcare journey today"}
-            </p>
-          </div>
-
-          {/* Main Card */}
-          <Card className="bg-gray-50 border-gray-200 shadow-2xl animate-fadeInUp animation-delay-200">
-            <CardContent className="p-8">
-              {/* Role Toggle */}
-              <div className="flex items-center justify-center space-x-6 mb-8 p-4 bg-gray-100 rounded-2xl">
-                <div
-                  className={`flex items-center space-x-2 transition-all duration-300 ${!isDoctor ? "text-blue-500 scale-110" : "text-gray-500"}`}
-                >
-                  <User className="w-5 h-5" />
-                  <Label htmlFor="role-switch-mobile" className="font-semibold cursor-pointer">
-                    Patient
-                  </Label>
-                </div>
-                <Switch
-                  id="role-switch-mobile"
-                  checked={isDoctor}
-                  onCheckedChange={setIsDoctor}
-                  className="data-[state=checked]:bg-purple-600 data-[state=unchecked]:bg-blue-600"
-                />
-                <div
-                  className={`flex items-center space-x-2 transition-all duration-300 ${isDoctor ? "text-purple-500 scale-110" : "text-gray-500"}`}
-                >
-                  <Stethoscope className="w-5 h-5" />
-                  <Label htmlFor="role-switch-mobile" className="font-semibold cursor-pointer">
-                    Doctor
-                  </Label>
-                </div>
-              </div>
-
-              {/* Auth Toggle Buttons */}
-              <div className="flex bg-gray-100 rounded-2xl p-1 mb-8">
+    <div className="h-screen w-screen bg-gray-100 overflow-hidden">
+      <div className="relative w-full h-full">
+        <div className="h-screen bg-gray-100 flex items-center justify-center">
+          <div className="w-full h-full">
+            {/* Role Toggle - Always visible at top */}
+            <div className="flex justify-center pt-4 pb-4">
+              <div className="flex bg-white/90 backdrop-blur-sm rounded-full p-1 shadow-lg border border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setIsLogin(true)}
-                  className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all duration-300 ${
-                    isLogin ? "bg-white text-gray-900 shadow-lg" : "text-gray-600 hover:bg-gray-200"
+                  onClick={() => setRole("patient")}
+                  className={`px-6 py-2 rounded-full font-medium transition-all duration-300 ${
+                    role === "patient" ? "bg-blue-500 text-white shadow-md" : "text-gray-600 hover:text-blue-500"
                   }`}
                 >
-                  Sign In
+                  Patient
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsLogin(false)}
-                  className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all duration-300 ${
-                    !isLogin ? "bg-white text-gray-900 shadow-lg" : "text-gray-600 hover:bg-gray-200"
+                  onClick={() => setRole("doctor")}
+                  className={`px-6 py-2 rounded-full font-medium transition-all duration-300 ${
+                    role === "doctor" ? "bg-purple-500 text-white shadow-md" : "text-gray-600 hover:text-purple-500"
                   }`}
                 >
-                  Sign Up
+                  Doctor
                 </button>
               </div>
+            </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {!isLogin && (
-                  <div className="animate-slideInLeft">
-                    <Label htmlFor="name-mobile" className="text-gray-700 font-medium">
-                      Full Name
-                    </Label>
-                    <div className="relative mt-2">
-                      <User className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                      <Input
-                        id="name-mobile"
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange("name", e.target.value)}
-                        className="pl-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                        placeholder="Enter your full name"
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
+            {/* Desktop Layout */}
+            <div className="hidden lg:flex w-full h-[calc(100vh-120px)] bg-white shadow-2xl overflow-hidden relative">
+              {/* Fixed curved animation section */}
+              <div
+                className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
+                  role === "patient"
+                    ? "bg-gradient-to-br from-blue-400 via-blue-500 to-purple-600"
+                    : "bg-gradient-to-br from-purple-500 via-purple-600 to-pink-600"
+                }`}
+                style={{
+                  clipPath: isLogin
+                    ? "polygon(0 0, 60% 0, 45% 100%, 0 100%)"
+                    : "polygon(40% 0, 100% 0, 100% 100%, 55% 100%)",
+                }}
+              >
+                <div
+                  className={`h-full flex flex-col justify-center px-12 text-white transition-all duration-1000 overflow-hidden ${
+                    isLogin ? "items-start text-left" : "items-end text-right"
+                  }`}
+                >
+                  <h2 className="text-3xl font-bold mb-4 break-words">
+                    {isLogin ? "Welcome Back!" : "Hello!"}
+                  </h2>
+                  <p className="text-lg mb-8 opacity-90 max-w-xs break-words leading-relaxed">
+                    {isLogin
+                      ? "Enter your details to access all Medicare features"
+                      : "Register to start your healthcare journey with us"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsLogin(!isLogin)}
+                    className="px-6 py-2 border-2 border-white text-white font-semibold rounded-full hover:bg-white hover:text-gray-800 transition-all duration-300 hover:scale-105 text-sm"
+                  >
+                    {isLogin ? "SIGN UP" : "SIGN IN"}
+                  </button>
+                </div>
+              </div>
 
-                <div className="animate-slideInLeft animation-delay-100">
-                  <Label htmlFor="email-mobile" className="text-gray-700 font-medium">
-                    Email Address
-                  </Label>
-                  <div className="relative mt-2">
-                    <Mail className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                    <Input
-                      id="email-mobile"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      className="pl-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                      placeholder="Enter your email"
-                      required
-                    />
+              {/* Desktop Form Section */}
+              <div
+                className={`w-full h-full flex items-start justify-center transition-all duration-1000 ${
+                  isLogin ? "pl-[45%]" : "pr-[45%]"
+                } py-8`}
+              >
+                <div className="w-full max-w-md px-8 h-full overflow-y-auto">
+                  <div className="min-h-full flex flex-col justify-center">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-8 text-center">
+                      {isLogin ? "Sign In" : "Create Account"}
+                    </h2>
+
+                    <form onSubmit={handleSubmit} className="space-y-6 flex-1">
+                      {!isLogin && (
+                        <div className="space-y-2">
+                          <Label htmlFor="name" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            Full Name
+                          </Label>
+                          <AnimatedInput
+                            id="name"
+                            placeholder="Enter your full name"
+                            value={formData.name}
+                            onChange={(value) => handleInputChange("name", value)}
+                            required
+                            icon={User}
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                          <Mail className="w-4 h-4" />
+                          Email Address
+                        </Label>
+                        <AnimatedInput
+                          id="email"
+                          type="email"
+                          placeholder="Enter your email"
+                          value={formData.email}
+                          onChange={(value) => handleInputChange("email", value)}
+                          required
+                          icon={Mail}
+                        />
+                      </div>
+
+                      {!isLogin && (
+                        <div className="space-y-2">
+                          <Label htmlFor="phone" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <Phone className="w-4 h-4" />
+                            Phone Number
+                          </Label>
+                          <AnimatedInput
+                            id="phone"
+                            type="tel"
+                            placeholder="Enter your phone number"
+                            value={formData.phone}
+                            onChange={(value) => handleInputChange("phone", value)}
+                            required
+                            icon={Phone}
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-2 relative">
+                        <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                          Password
+                        </Label>
+                        <div className="relative group">
+                          <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Enter your password"
+                            value={formData.password}
+                            onChange={(e) => handleInputChange("password", e.target.value)}
+                            className="h-14 pl-4 pr-12 border-2 border-gray-200 rounded-xl bg-gray-50/50 backdrop-blur-sm
+                              focus:border-blue-500 focus:bg-white focus:shadow-lg focus:shadow-blue-500/10
+                              hover:border-gray-300 hover:bg-white/80
+                              transition-all duration-300 ease-out
+                              placeholder:text-gray-400 text-gray-700"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
+                          >
+                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {!isLogin && role === "doctor" && (
+                        <>
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                              <Stethoscope className="w-4 h-4" />
+                              Medical Specialty
+                            </Label>
+                            <AnimatedSelect
+                              value={formData.specialty}
+                              onValueChange={(value) => handleInputChange("specialty", value)}
+                              placeholder="Select your specialty"
+                              options={medicalSpecialties}
+                              icon={Stethoscope}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                              <GraduationCap className="w-4 h-4" />
+                              Qualification
+                            </Label>
+                            <AnimatedSelect
+                              value={formData.qualifications}
+                              onValueChange={(value) => handleInputChange("qualifications", value)}
+                              placeholder="Select your qualification"
+                              options={qualifications}
+                              icon={GraduationCap}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                              <Briefcase className="w-4 h-4" />
+                              Experience
+                            </Label>
+                            <AnimatedSelect
+                              value={formData.experience}
+                              onValueChange={(value) => handleInputChange("experience", value)}
+                              placeholder="Select your experience"
+                              options={experienceOptions}
+                              icon={Briefcase}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label
+                              htmlFor="clinicAddress"
+                              className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                            >
+                              <MapPin className="w-4 h-4" />
+                              Clinic Address
+                            </Label>
+                            <AnimatedInput
+                              id="clinicAddress"
+                              placeholder="Enter your clinic address"
+                              value={formData.clinicAddress}
+                              onChange={(value) => handleInputChange("clinicAddress", value)}
+                              required
+                              icon={MapPin}
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      {isLogin && (
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              id="remember"
+                              type="checkbox"
+                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <Label htmlFor="remember" className="text-gray-600">
+                              Remember me
+                            </Label>
+                          </div>
+                          <button
+                            type="button"
+                            className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+                          >
+                            Forgot password?
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="relative z-10 overflow-visible p-1 mt-8">
+                        <Button
+                          type="submit"
+                          disabled={isLoading}
+                          className={`w-full h-14 font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed relative z-10 border-0 outline-none focus:outline-none ${
+                            role === "patient"
+                              ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                              : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                          } text-white shadow-lg`}
+                        >
+                          {isLoading ? (
+                            <div className="flex items-center justify-center space-x-2">
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              <span>Please wait...</span>
+                            </div>
+                          ) : (
+                            <span>{isLogin ? "Sign In" : "Create Account"}</span>
+                          )}
+                        </Button>
+                      </div>
+
+                      {isLogin && (
+                        <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                          <p className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</p>
+                          <div className="text-xs text-gray-600 space-y-1">
+                            {role === "patient" ? (
+                              <>
+                                <p>
+                                  <strong>Email:</strong> john@example.com
+                                </p>
+                                <p>
+                                  <strong>Password:</strong> 11221122
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <p>
+                                  <strong>Email:</strong> sarah@example.com
+                                </p>
+                                <p>
+                                  <strong>Password:</strong> 26272627
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </form>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                {!isLogin && (
-                  <div className="animate-slideInLeft animation-delay-200">
-                    <Label htmlFor="phone-mobile" className="text-gray-700 font-medium">
-                      Phone Number
-                    </Label>
-                    <div className="relative mt-2">
-                      <Phone className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                      <Input
-                        id="phone-mobile"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => handleInputChange("phone", e.target.value)}
-                        className="pl-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                        placeholder="Enter your phone number"
-                        required
-                      />
-                    </div>
+            {/* Mobile Layout */}
+            <div className="lg:hidden w-full h-[calc(100vh-120px)] px-4">
+              <div className="text-center mb-8">
+                <div className="flex items-center justify-center space-x-3 mb-6">
+                  <div className="w-14 h-14 bg-gradient-to-r from-blue-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-2xl">
+                    <Heart className="w-8 h-8 text-white" />
                   </div>
-                )}
+                  <span className="text-4xl font-bold text-gray-800">
+                    Medi<span className="text-blue-500">Care</span>
+                  </span>
+                </div>
+                <h1 className="text-3xl font-bold text-gray-800 mb-2">{isLogin ? "Welcome Back!" : "Join MediCare"}</h1>
+                <p className="text-gray-600">
+                  {isLogin ? "Sign in to continue your health journey" : "Start your healthcare journey today"}
+                </p>
+              </div>
 
-                <div className="animate-slideInLeft animation-delay-300">
-                  <Label htmlFor="password-mobile" className="text-gray-700 font-medium">
-                    Password
-                  </Label>
-                  <div className="relative mt-2">
-                    <Lock className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                    <Input
-                      id="password-mobile"
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(e) => handleInputChange("password", e.target.value)}
-                      className="pl-12 pr-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 rounded-xl"
-                      placeholder="Enter your password"
-                      required
-                      minLength={6}
-                    />
+              <Card className="bg-white border-gray-200 shadow-2xl">
+                <CardContent className="p-8">
+                  <div className="flex bg-gray-100 rounded-2xl p-1 mb-8">
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 transition-colors"
+                      onClick={() => setIsLogin(true)}
+                      className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all duration-300 ${
+                        isLogin ? "bg-white text-gray-900 shadow-lg" : "text-gray-600 hover:bg-gray-200"
+                      }`}
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsLogin(false)}
+                      className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all duration-300 ${
+                        !isLogin ? "bg-white text-gray-900 shadow-lg" : "text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      Sign Up
                     </button>
                   </div>
-                </div>
 
-                {!isLogin && isDoctor && (
-                  <div className="space-y-6 animate-slideInLeft animation-delay-400">
-                    <div>
-                      <Label htmlFor="specialty-mobile" className="text-gray-700 font-medium">
-                        Medical Specialty
-                      </Label>
-                      <div className="relative mt-2">
-                        <Select onValueChange={(value) => handleInputChange("specialty", value)}>
-                          <SelectTrigger className="h-14 bg-white border-gray-300 text-gray-900 focus:border-purple-500 focus:ring-purple-500 rounded-xl">
-                            <SelectValue placeholder="Select your specialty" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border-gray-200">
-                            <SelectItem value="cardiology">Cardiology</SelectItem>
-                            <SelectItem value="dermatology">Dermatology</SelectItem>
-                            <SelectItem value="neurology">Neurology</SelectItem>
-                            <SelectItem value="orthopedics">Orthopedics</SelectItem>
-                            <SelectItem value="pediatrics">Pediatrics</SelectItem>
-                            <SelectItem value="psychiatry">Psychiatry</SelectItem>
-                            <SelectItem value="general">General Medicine</SelectItem>
-                          </SelectContent>
-                        </Select>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    {!isLogin && (
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="mobile-name"
+                          className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                        >
+                          <User className="w-4 h-4" />
+                          Full Name
+                        </Label>
+                        <AnimatedInput
+                          id="mobile-name"
+                          placeholder="Enter your full name"
+                          value={formData.name}
+                          onChange={(value) => handleInputChange("name", value)}
+                          required
+                          icon={User}
+                        />
                       </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="mobile-email"
+                        className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                      >
+                        <Mail className="w-4 h-4" />
+                        Email Address
+                      </Label>
+                      <AnimatedInput
+                        id="mobile-email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChange={(value) => handleInputChange("email", value)}
+                        required
+                        icon={Mail}
+                      />
                     </div>
 
-                    <div>
-                      <Label htmlFor="qualifications-mobile" className="text-gray-700 font-medium">
-                        Qualifications
+                    {!isLogin && (
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="mobile-phone"
+                          className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                        >
+                          <Phone className="w-4 h-4" />
+                          Phone Number
+                        </Label>
+                        <AnimatedInput
+                          id="mobile-phone"
+                          type="tel"
+                          placeholder="Enter your phone number"
+                          value={formData.phone}
+                          onChange={(value) => handleInputChange("phone", value)}
+                          required
+                          icon={Phone}
+                        />
+                      </div>
+                    )}
+
+                    <div className="space-y-2 relative">
+                      <Label htmlFor="mobile-password" className="text-sm font-medium text-gray-700">
+                        Password
                       </Label>
-                      <div className="relative mt-2">
-                        <GraduationCap className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+                      <div className="relative group">
                         <Input
-                          id="qualifications-mobile"
-                          type="text"
-                          value={formData.qualifications}
-                          onChange={(e) => handleInputChange("qualifications", e.target.value)}
-                          className="pl-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 rounded-xl"
-                          placeholder="e.g., MD, MBBS, Specialist"
+                          id="mobile-password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          value={formData.password}
+                          onChange={(e) => handleInputChange("password", e.target.value)}
+                          className="h-14 pl-4 pr-12 border-2 border-gray-200 rounded-xl bg-gray-50/50 backdrop-blur-sm
+                            focus:border-blue-500 focus:bg-white focus:shadow-lg focus:shadow-blue-500/10
+                            hover:border-gray-300 hover:bg-white/80
+                            transition-all duration-300 ease-out
+                            placeholder:text-gray-400 text-gray-700"
                           required
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200 z-10"
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
                       </div>
                     </div>
 
-                    <div>
-                      <Label htmlFor="experience-mobile" className="text-gray-700 font-medium">
-                        Experience
-                      </Label>
-                      <div className="relative mt-2">
-                        <Clock className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                        <Input
-                          id="experience-mobile"
-                          type="text"
-                          value={formData.experience}
-                          onChange={(e) => handleInputChange("experience", e.target.value)}
-                          className="pl-12 h-14 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 rounded-xl"
-                          placeholder="e.g., 5 years"
-                          required
-                        />
+                    {!isLogin && role === "doctor" && (
+                      <>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <Stethoscope className="w-4 h-4" />
+                            Medical Specialty
+                          </Label>
+                          <AnimatedSelect
+                            value={formData.specialty}
+                            onValueChange={(value) => handleInputChange("specialty", value)}
+                            placeholder="Select your specialty"
+                            options={medicalSpecialties}
+                            icon={Stethoscope}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <GraduationCap className="w-4 h-4" />
+                            Qualification
+                          </Label>
+                          <AnimatedSelect
+                            value={formData.qualifications}
+                            onValueChange={(value) => handleInputChange("qualifications", value)}
+                            placeholder="Select your qualification"
+                            options={qualifications}
+                            icon={GraduationCap}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <Briefcase className="w-4 h-4" />
+                            Experience
+                          </Label>
+                          <AnimatedSelect
+                            value={formData.experience}
+                            onValueChange={(value) => handleInputChange("experience", value)}
+                            placeholder="Select your experience"
+                            options={experienceOptions}
+                            icon={Briefcase}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label
+                            htmlFor="mobile-clinicAddress"
+                            className="text-sm font-medium text-gray-700 flex items-center gap-2"
+                          >
+                            <MapPin className="w-4 h-4" />
+                            Clinic Address
+                          </Label>
+                          <AnimatedInput
+                            id="mobile-clinicAddress"
+                            placeholder="Enter your clinic address"
+                            value={formData.clinicAddress}
+                            onChange={(value) => handleInputChange("clinicAddress", value)}
+                            required
+                            icon={MapPin}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {isLogin && (
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            id="mobile-remember"
+                            type="checkbox"
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <Label htmlFor="mobile-remember" className="text-gray-600">
+                            Remember me
+                          </Label>
+                        </div>
+                        <button
+                          type="button"
+                          className="text-blue-600 hover:text-blue-800 transition-colors duration-200"
+                        >
+                          Forgot password?
+                        </button>
                       </div>
+                    )}
+
+                    <div className="relative z-10 overflow-visible p-1 mt-8">
+                      <Button
+                        type="submit"
+                        disabled={isLoading}
+                        className={`w-full h-14 font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed relative z-10 border-0 outline-none focus:outline-none ${
+                          role === "patient"
+                            ? "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                            : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                        } text-white shadow-lg`}
+                      >
+                        {isLoading ? (
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            <span>Please wait...</span>
+                          </div>
+                        ) : (
+                          <span>{isLogin ? "Sign In" : "Create Account"}</span>
+                        )}
+                      </Button>
                     </div>
 
-                    <div>
-                      <Label htmlFor="clinicAddress-mobile" className="text-gray-700 font-medium">
-                        Clinic Address
-                      </Label>
-                      <div className="relative mt-2">
-                        <MapPin className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                        <Textarea
-                          id="clinicAddress-mobile"
-                          value={formData.clinicAddress}
-                          onChange={(e) => handleInputChange("clinicAddress", e.target.value)}
-                          className="pl-12 min-h-[100px] bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 rounded-xl resize-none"
-                          placeholder="Enter your clinic address"
-                          required
-                        />
+                    {isLogin && (
+                      <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                        <p className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</p>
+                        <div className="text-xs text-gray-600 space-y-1">
+                          {role === "patient" ? (
+                            <>
+                              <p>
+                                <strong>Email:</strong> john@example.com
+                              </p>
+                              <p>
+                                <strong>Password:</strong> 11221122
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p>
+                                <strong>Email:</strong> sarah@example.com
+                              </p>
+                              <p>
+                                <strong>Password:</strong> 26272627
+                              </p>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                <Button
-                  type="submit"
-                  className={`w-full h-14 text-lg font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 ${
-                    isDoctor
-                      ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                      : "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-                  } shadow-2xl animate-slideInUp animation-delay-500 text-white`}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Please wait...</span>
-                    </div>
-                  ) : (
-                    `${isLogin ? "Sign In" : "Create Account"} as ${isDoctor ? "Doctor" : "Patient"}`
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-          <ServerStatus />
-
-          {/* Demo Credentials */}
-          <div className="mt-6 p-6 bg-gray-50 rounded-2xl border border-gray-200 animate-fadeInUp animation-delay-600">
-            <h3 className="font-bold text-gray-800 mb-3 text-center">🚀 Demo Credentials</h3>
-            <div className="grid grid-cols-1 gap-3 text-sm">
-              <div className="bg-blue-50 p-3 rounded-xl border border-blue-200">
-                <p className="text-blue-700 font-semibold">👨‍⚕️ Doctor Account</p>
-                <p className="text-gray-700">sarah@example.com / password123</p>
-              </div>
-              <div className="bg-green-50 p-3 rounded-xl border border-green-200">
-                <p className="text-green-700 font-semibold">🏥 Patient Account</p>
-                <p className="text-gray-700">john@example.com / password123</p>
-              </div>
+                    )}
+                  </form>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }

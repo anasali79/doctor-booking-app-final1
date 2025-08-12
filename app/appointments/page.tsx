@@ -426,7 +426,7 @@ export default function AppointmentsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+            <h1 className="text-3xl sm:text-4xl mt-12 lg:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
               My Appointments
             </h1>
             <p className="text-slate-300 text-base sm:text-lg max-w-2xl mx-auto">

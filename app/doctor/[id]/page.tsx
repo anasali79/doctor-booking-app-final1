@@ -229,7 +229,7 @@ export default function DoctorProfilePage() {
                   <TabsContent value="about" className="space-y-6 mt-4">
                     <Card className="bg-white/5 border-white/10 backdrop-blur">
                       <CardHeader>
-                        <CardTitle>About Dr. {doctor.name.split(" ").pop()}</CardTitle>
+                        <CardTitle className="text-white">About Dr. {doctor.name.split(" ").pop()}</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p className="text-white/80 leading-relaxed">{doctor.about}</p>
@@ -238,7 +238,7 @@ export default function DoctorProfilePage() {
 
                     <Card className="bg-white/5 border-white/10 backdrop-blur">
                       <CardHeader>
-                        <CardTitle>Qualifications & Experience</CardTitle>
+                        <CardTitle className="text-white">Qualifications & Experience</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
@@ -264,7 +264,7 @@ export default function DoctorProfilePage() {
                   <TabsContent value="availability" className="space-y-6 mt-4">
                     <Card className="bg-white/5 border-white/10 backdrop-blur">
                       <CardHeader>
-                        <CardTitle>Clinic Availability</CardTitle>
+                        <CardTitle className="text-white" >Clinic Availability</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
@@ -291,7 +291,7 @@ export default function DoctorProfilePage() {
 
                     <Card className="bg-white/5 border-white/10 backdrop-blur">
                       <CardHeader>
-                        <CardTitle>Online Availability</CardTitle>
+                        <CardTitle className="text-white" >Online Availability</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-2">
@@ -320,7 +320,7 @@ export default function DoctorProfilePage() {
                   <TabsContent value="reviews" className="space-y-6 mt-4">
                     <Card className="bg-white/5 border-white/10 backdrop-blur">
                       <CardHeader>
-                        <CardTitle>Patient Reviews</CardTitle>
+                        <CardTitle className="text-white">Patient Reviews</CardTitle>
                         <CardDescription className="text-white/60">
                           Based on {doctor.reviewCount} verified patient reviews
                         </CardDescription>
@@ -365,7 +365,7 @@ export default function DoctorProfilePage() {
               <div className="space-y-6">
                 <Card className="bg-white/5 border-white/10 backdrop-blur">
                   <CardHeader>
-                    <CardTitle>Book Appointment</CardTitle>
+                    <CardTitle className="text-white">Book Appointment</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {doctor.consultationType?.includes("clinic") && (
@@ -429,7 +429,7 @@ export default function DoctorProfilePage() {
 
                 <Card className="bg-white/5 border-white/10 backdrop-blur">
                   <CardHeader>
-                    <CardTitle>Quick Info</CardTitle>
+                    <CardTitle className="text-white">Quick Info</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center text-white/80">
@@ -449,7 +449,7 @@ export default function DoctorProfilePage() {
 
                 <Card className="bg-white/5 border-white/10 backdrop-blur">
                   <CardHeader>
-                    <CardTitle>Explore more</CardTitle>
+                    <CardTitle className="text-white" >Explore more</CardTitle>
                     <CardDescription className="text-white/60">
                       Find other specialists related to {doctor.specialty}
                     </CardDescription>

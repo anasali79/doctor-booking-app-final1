@@ -52,23 +52,59 @@ export interface Doctor {
   consultationType?: string[]
 }
 
+// Updated Patient interface with comprehensive profile fields
 export interface Patient {
   id: string
   name: string
   email: string
   phone: string
-  age?: number // New field
-  gender?: "Male" | "Female" | "Other" // New field
-  allergies?: string[]
-  chronicConditions?: string[]
+  age?: number
+  gender?: "Male" | "Female" | "Other"
+
+  // Personal Information (expanded)
+  secondaryPhone?: string
   address?: string
+  city?: string
+  state?: string
+  zipCode?: string
+  country?: string
   dateOfBirth?: string
+  maritalStatus?: string
+  nationality?: string
+  preferredLanguage?: string
+
+  // Medical Information (expanded)
   bloodGroup?: string
   heightCm?: number
   weightKg?: number
   insuranceProvider?: string
   policyNumber?: string
+  groupNumber?: string
   coverageDetails?: string
+  emergencyContactName?: string
+  emergencyContactPhone?: string
+  emergencyContactRelation?: string
+  primaryCarePhysician?: string
+  medicalIdNumber?: string
+  currentMedications?: string
+  allergies?: string // Changed from string[] to string for easier form handling
+  chronicConditions?: string // Changed from string[] to string for easier form handling
+  pastSurgeries?: string
+  familyMedicalHistory?: string
+  vaccinationRecords?: string
+
+  // Lifestyle Information (new)
+  smokingStatus?: string
+  alcoholConsumption?: string
+  exerciseHabits?: string
+  dietaryPreferences?: string
+  occupation?: string
+  stressLevel?: string
+  sleepHours?: string
+  physicalActivityLevel?: string
+
+  // Keep password for authentication
+  password?: string
 }
 
 export interface TimeSlot {
@@ -116,35 +152,67 @@ export const authAPI = {
     try {
       const endpoint = role === "doctor" ? "doctors" : "patients"
       const response = await fetch(`${BASE_URL}/${endpoint}`)
+
       if (!response.ok) {
-        throw new Error("Server not responding. Please make sure JSON Server is running on port 3001.")
+        return {
+          success: false,
+          message: "Server not responding. Please make sure JSON Server is running.",
+          user: null,
+        }
       }
+
       const users = await response.json()
       const user = users.find((u: any) => u.email === email && u.password === password)
+
       if (!user) {
-        throw new Error("Invalid email or password")
+        return {
+          success: false,
+          message: "Invalid email or password",
+          user: null,
+        }
       }
-      // Return user with role
-      return { ...user, role }
+
+      // Return success response with user data
+      return {
+        success: true,
+        message: "Login successful",
+        user: { ...user, role },
+      }
     } catch (error) {
+      console.error("Login error:", error)
       if (error instanceof TypeError && error.message.includes("fetch")) {
-        throw new Error("Cannot connect to server. Please run 'npm run json-server' in a separate terminal.")
+        return {
+          success: false,
+          message: "Cannot connect to server. Please check your internet connection.",
+          user: null,
+        }
       }
-      throw error
+      return {
+        success: false,
+        message: "An unexpected error occurred. Please try again.",
+        user: null,
+      }
     }
   },
+
   async signup(userData: any, role: "doctor" | "patient") {
     try {
       const endpoint = role === "doctor" ? "doctors" : "patients"
+
       // Check if user already exists
       const existingResponse = await fetch(`${BASE_URL}/${endpoint}`)
       if (existingResponse.ok) {
         const existingUsers = await existingResponse.json()
         const userExists = existingUsers.find((u: any) => u.email === userData.email)
         if (userExists) {
-          throw new Error("User with this email already exists")
+          return {
+            success: false,
+            message: "User with this email already exists",
+            user: null,
+          }
         }
       }
+
       const response = await fetch(`${BASE_URL}/${endpoint}`, {
         method: "POST",
         headers: {
@@ -156,16 +224,35 @@ export const authAPI = {
           password: userData.password,
         }),
       })
+
       if (!response.ok) {
-        throw new Error("Server not responding. Please make sure JSON Server is running on port 3001.")
+        return {
+          success: false,
+          message: "Server not responding. Please make sure JSON Server is running.",
+          user: null,
+        }
       }
+
       const user = await response.json()
-      return { ...user, role }
-    } catch (error) {
-      if (error instanceof TypeError && error.message.includes("fetch")) {
-        throw new Error("Cannot connect to server. Please run 'npm run json-server' in a separate terminal.")
+      return {
+        success: true,
+        message: "Signup successful",
+        user: { ...user, role },
       }
-      throw error
+    } catch (error) {
+      console.error("Signup error:", error)
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        return {
+          success: false,
+          message: "Cannot connect to server. Please check your internet connection.",
+          user: null,
+        }
+      }
+      return {
+        success: false,
+        message: "An unexpected error occurred. Please try again.",
+        user: null,
+      }
     }
   },
 }
@@ -222,7 +309,7 @@ export const doctorsAPI = {
   },
 }
 
-// Patients API
+// Patients API (Enhanced with comprehensive profile support)
 export const patientsAPI = {
   async getById(id: string): Promise<Patient> {
     try {
@@ -261,6 +348,24 @@ export const patientsAPI = {
       return response.json()
     } catch (error) {
       console.error("Error updating patient:", error)
+      throw error
+    }
+  },
+  async create(data: Omit<Patient, "id">): Promise<Patient> {
+    try {
+      const response = await fetch(`${BASE_URL}/patients`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...data, id: Date.now().toString() }),
+      })
+      if (!response.ok) {
+        throw new Error("Failed to create patient profile")
+      }
+      return response.json()
+    } catch (error) {
+      console.error("Error creating patient profile:", error)
       throw error
     }
   },
@@ -482,3 +587,6 @@ export const prescriptionsAPI = {
     }
   },
 }
+
+// Export server status check function
+export { checkServerStatus }

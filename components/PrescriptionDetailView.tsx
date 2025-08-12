@@ -33,8 +33,8 @@ type Props = {
 }
 
 export function PrescriptionDetailView({ prescription, patient, doctor }: Props) {
-  // Best practice: Link to main prescription view page with all options
-  const prescriptionUrl = `https://doctor-booking-app-orpin.vercel.app/prescription/${prescription.id}`
+  // Updated QR code to point to local scan page with 's'
+  const prescriptionScanUrl = `https://doctor-booking-app-orpin.vercel.app/${prescription.id}`
 
   return (
     <div className="min-h-screen bg-[#0c3a53] p-4 print:bg-white print:p-0">
@@ -79,8 +79,8 @@ export function PrescriptionDetailView({ prescription, patient, doctor }: Props)
         <section className="px-10 pb-6">
           <div className="grid grid-cols-1 gap-x-12 gap-y-3 sm:grid-cols-2">
             <FieldLine label="Patient Name" value={prescription.patientName || patient?.name} />
-            <FieldLine label="Insurance" value={patient?.policyNumber}/>
-            <FieldLine label="Address" value="—" />
+            <FieldLine label="Insurance" value={patient?.policyNumber} />
+            <FieldLine label="Address" value={patient?.address} />
             <FieldLine label="Diagnosis" value={prescription.diagnosis} />
             <FieldLine label="Date" value={formatDateTime(prescription.datePrescribed)} />
             <FieldLine label="Appointment ID" value={prescription.appointmentId} />
@@ -216,7 +216,7 @@ export function PrescriptionDetailView({ prescription, patient, doctor }: Props)
           <div className="absolute bottom-0 right-0 h-[110px] w-40 rounded-tl-[90px] bg-sky-100 flex items-end justify-end p-4">
             <div className="text-slate-700 text-xs font-medium transform rotate-12">
               <div className="flex flex-col items-end">
-            
+               
               </div>
             </div>
           </div>
@@ -226,7 +226,7 @@ export function PrescriptionDetailView({ prescription, patient, doctor }: Props)
             {/* QR Code */}
             <div className="col-span-12 flex items-center gap-4 sm:col-span-4 lg:col-span-3">
               <div className="rounded-md bg-white/95 p-2">
-                <QRCode text={prescriptionUrl} size={84} />
+                <QRCode text={prescriptionScanUrl} size={84} />
               </div>
             </div>
 
@@ -239,7 +239,7 @@ export function PrescriptionDetailView({ prescription, patient, doctor }: Props)
                 </div>
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4 text-black" />
-                  <span>{"doctor-booking-app-orpin.vercel.app"}</span>
+                  <span>{"https://doctor-booking-app-orpin.vercel.app"}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-black" />

@@ -25,10 +25,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import type { DateRange } from "react-day-picker"
-import { Calendar as CalendarIcon, ArrowLeft, FileText, Filter, Download, Pill, Stethoscope, UserCircle2, Phone, Video, Building2, Search as SearchIcon, UploadCloud, AlertTriangle } from "lucide-react"
+import { Calendar as CalendarIcon, ArrowLeft, FileText, Filter, Download, Pill, Stethoscope, UserCircle2, Phone, Video, Building2, Search as SearchIcon, UploadCloud, AlertTriangle, Eye, User, Mail, Phone as PhoneIcon, MapPin, CalendarDays, Heart, Activity } from "lucide-react"
 import jsPDF from "jspdf"
 // html2canvas was tried for exact snapshot export, but the user prefers the print-format PDF
-import { format, isAfter, isBefore, parseISO } from "date-fns"
+import { format, isAfter, isBefore, parseISO, parse } from "date-fns"
 import Link from "next/link"
 import { PrescriptionDetailView } from "@/components/PrescriptionDetailView"
 import { useToast } from "@/hooks/use-toast"
@@ -46,6 +46,7 @@ export default function PatientMedicalHistoryPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([])
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null)
   const [showPrescriptionDialog, setShowPrescriptionDialog] = useState(false)
+  const [showPatientProfileDialog, setShowPatientProfileDialog] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
 
   // Filters
@@ -55,6 +56,35 @@ export default function PatientMedicalHistoryPage() {
   const [searchText, setSearchText] = useState<string>("") // doctor/diagnosis
   const [viewMode, setViewMode] = useState<"grid" | "timeline">("grid")
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
+
+  // Hoisted parser to avoid temporal dead zone when used in hooks below
+  function parsePrescriptionDate(value?: string | null): Date | null {
+    if (!value) return null
+    // Try ISO first
+    try {
+      const iso = parseISO(value)
+      if (!isNaN(iso.getTime())) return iso
+    } catch {}
+    // Try common display formats
+    const tryFormats = [
+      "MMM dd yyyy 'at' hh:mm a",
+      "dd MMM yyyy 'at' hh:mm a",
+      "MMM dd yyyy",
+      "dd MMM yyyy",
+    ] as const
+    for (const fmt of tryFormats) {
+      try {
+        const d = parse(value, fmt, new Date())
+        if (!isNaN(d.getTime())) return d
+      } catch {}
+    }
+    // Fallback to Date constructor
+    try {
+      const d = new Date(value)
+      if (!isNaN(d.getTime())) return d
+    } catch {}
+    return null
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -69,8 +99,12 @@ export default function PatientMedicalHistoryPage() {
         ])
         // Sort appointments newest first
         apts.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime())
-        // Sort prescriptions newest first
-        pres.sort((a, b) => parseISO(b.datePrescribed).getTime() - parseISO(a.datePrescribed).getTime())
+        // Sort prescriptions newest first (robust parse)
+        pres.sort((a, b) => {
+          const db = parsePrescriptionDate(b.datePrescribed)?.getTime() ?? 0
+          const da = parsePrescriptionDate(a.datePrescribed)?.getTime() ?? 0
+          return db - da
+        })
 
         setPatient(p)
         setAppointments(apts)
@@ -101,7 +135,7 @@ export default function PatientMedicalHistoryPage() {
 
   const filteredPrescriptions = useMemo(() => {
     return prescriptions.filter((pre) => {
-      const date = parseISO(pre.datePrescribed)
+      const date = parsePrescriptionDate(pre.datePrescribed) ?? new Date(0)
       if (fromDate && isBefore(date, parseISO(fromDate))) return false
       if (toDate && isAfter(date, parseISO(toDate))) return false
       if (searchText) {
@@ -124,6 +158,9 @@ export default function PatientMedicalHistoryPage() {
     })
     return map
   }, [prescriptions])
+
+  // Robust parser to handle ISO and formatted strings like "Aug 08 2025 at 03:05 PM"
+  // (Hoisted version above is the one used)
 
   const getStatusBadge = (status: Appointment["status"]) => {
     const classes = {
@@ -203,6 +240,13 @@ export default function PatientMedicalHistoryPage() {
     window.print()
   }
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
     <ProtectedRoute allowedRoles={["doctor"]}>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -234,9 +278,12 @@ export default function PatientMedicalHistoryPage() {
                   <Link href={`/doctor/patients`}>
                     <Button variant="outline" className="border-slate-600 text-slate-300 bg-transparent no-print">Patients</Button>
                   </Link>
-                  <Link href={`/profile?id=${patientId}`}>
-                    <Button className="bg-teal-600 hover:bg-teal-700 no-print">View Profile</Button>
-                  </Link>
+                  <Button 
+                    className="bg-teal-600 hover:bg-teal-700 no-print"
+                    onClick={() => setShowPatientProfileDialog(true)}
+                  >
+                    <User className="w-4 h-4 mr-2" /> View Profile
+                  </Button>
                   <div className="flex gap-2">
                     <Button onClick={handleDownloadPdf} variant="outline" className="border-slate-600 text-slate-300 bg-transparent no-print">
                       <Download className="w-4 h-4 mr-2" /> PDF
@@ -295,8 +342,8 @@ export default function PatientMedicalHistoryPage() {
                           selected={dateRange}
                           onSelect={(range) => {
                             setDateRange(range)
-                            if (range?.from) setFromDate(format(range.from, "yyyy-MM-dd"))
-                            if (range?.to) setToDate(format(range.to, "yyyy-MM-dd"))
+                            if (range?.from) setFromDate(format(range.from,"yyyy-MM-dd"))
+                            if (range?.to) setToDate(format(range.to,"yyyy-MM-dd"))
                           }}
                           numberOfMonths={2}
                         />
@@ -331,13 +378,25 @@ export default function PatientMedicalHistoryPage() {
                 <CardTitle className="text-white text-lg">Quick Stats</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                  <div className="text-slate-400 text-sm">Appointments</div>
-                  <div className="text-2xl font-semibold text-white">{totals.appointments}</div>
+                <div 
+                  className="group p-4 rounded-xl bg-white/5 border border-white/10 cursor-pointer transition-all duration-200 hover:bg-teal-500/15 hover:border-teal-400/30 hover:ring-1 hover:ring-teal-400/20 hover:-translate-y-0.5"
+                  onClick={() => scrollToSection('appointments-section')}
+                >
+                  <div className="text-slate-400 text-sm flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-teal-300" />
+                    <span className="transition-colors duration-200 group-hover:text-teal-200">Appointments</span>
+                  </div>
+                  <div className="text-2xl font-semibold text-white transition-colors duration-200 group-hover:text-teal-200">{totals.appointments}</div>
                 </div>
-                <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-                  <div className="text-slate-400 text-sm">Prescriptions</div>
-                  <div className="text-2xl font-semibold text-white">{totals.prescriptions}</div>
+                <div 
+                  className="group p-4 rounded-xl bg-white/5 border border-white/10 cursor-pointer transition-all duration-200 hover:bg-emerald-500/15 hover:border-emerald-400/30 hover:ring-1 hover:ring-emerald-400/20 hover:-translate-y-0.5"
+                  onClick={() => scrollToSection('prescriptions-section')}
+                >
+                  <div className="text-slate-400 text-sm flex items-center gap-2">
+                    <Pill className="w-4 h-4 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-emerald-300" />
+                    <span className="transition-colors duration-200 group-hover:text-emerald-200">Prescriptions</span>
+                  </div>
+                  <div className="text-2xl font-semibold text-white transition-colors duration-200 group-hover:text-emerald-200">{totals.prescriptions}</div>
                 </div>
               </CardContent>
             </Card>
@@ -362,7 +421,7 @@ export default function PatientMedicalHistoryPage() {
           {/* Timeline */}
           <div id="history-card-export" className="space-y-8">
             {/* Appointments */}
-            <div>
+            <div id="appointments-section">
               <div className="flex items-center gap-2 mb-4">
                 <CalendarIcon className="w-5 h-5 text-teal-400" />
                 <h2 className="text-xl font-semibold text-white">Appointments</h2>
@@ -381,13 +440,22 @@ export default function PatientMedicalHistoryPage() {
                     </Card>
                   ))
                 ) : filteredAppointments.length === 0 ? (
-                  <Card className="border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80">
-                    <CardContent className="p-6 text-slate-300">No appointments in selected range.</CardContent>
+                  <Card className="border border-slate-200 bg-white">
+                    <CardContent className="p-6 text-center">
+                      <CalendarIcon className="w-12 h-12 text-slate-500 mx-auto mb-3" />
+                      <div className="text-black font-medium">No appointments found</div>
+                      <div className="text-black/70 text-sm">No appointments match your current filters.</div>
+                    </CardContent>
                   </Card>
                 ) : (
                   filteredAppointments.map((apt, idx) => {
                     const pre = appointmentIdToPrescription[apt.id]
                     const diagnosis = pre?.diagnosis || pre?.symptoms
+                    const hasPrescription = !!pre
+                    const hasDiagnosis = !!diagnosis
+                    const hasMedicines = pre?.medicines && pre.medicines.length > 0
+                    const hasAttachments = pre?.attachments && pre.attachments.length > 0
+                    
                     return (
                     <div key={apt.id} className={viewMode === "timeline" ? "relative" : ""}>
                       {viewMode === "timeline" && (
@@ -396,7 +464,7 @@ export default function PatientMedicalHistoryPage() {
                           <span className="absolute left-[-1.02rem] top-4 -z-10 h-full w-0.5 bg-slate-700" />
                         </>
                       )}
-                      <Card className="border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80">
+                      <Card className={`border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 ${hasPrescription ? 'ring-1 ring-teal-500/20' : ''}`}>
                       <CardHeader>
                         <CardTitle className="text-white flex items-center justify-between">
                           <span>{format(parseISO(apt.date), "dd MMM yyyy")} • {apt.time}</span>
@@ -416,63 +484,98 @@ export default function PatientMedicalHistoryPage() {
                           <Stethoscope className="w-4 h-4 text-cyan-400" />
                           <span>Status: {apt.status}</span>
                         </div>
-                        <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                          <div className="text-slate-400 text-sm mb-1">Diagnosis</div>
-                          <div className="flex flex-wrap gap-2">
-                            {(diagnosis ? diagnosis.split(",").map(d => d.trim()).filter(Boolean) : []).slice(0,6).map((tag, i) => (
-                              <Badge key={i} className="bg-cyan-500/15 text-cyan-300 border-cyan-500/20">{tag}</Badge>
-                            ))}
-                            {!diagnosis && <span className="text-sm">Not recorded</span>}
+                        
+                        {/* Diagnosis Section */}
+                        <div className={`rounded-lg p-3 ${hasDiagnosis ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-slate-500/10 border border-slate-500/20'}`}>
+                          <div className="text-slate-400 text-sm mb-2 flex items-center gap-2">
+                            <Activity className="w-4 h-4" />
+                            Diagnosis & Symptoms
                           </div>
-                        </div>
-                         <div className="bg-white/5 border border-white/10 rounded-lg p-3">
-                          <div className="text-slate-400 text-sm mb-1">Prescription</div>
-                          {pre ? (
-                            <div className="space-y-1 text-sm">
-                              <div className="text-slate-300">
-                                {pre.medicines?.length ? pre.medicines.map(m => `${m.name} (${m.dosage})`).join(", ") : "Medicines not added"}
-                              </div>
-                              {pre.followUpDate && (
-                                <div className="text-slate-400">
-                                  Follow-up: {(() => {
-                                    try {
-                                      const d = parseISO(pre.followUpDate)
-                                      return isNaN(d.getTime()) ? "—" : format(d, "dd MMM yyyy")
-                                    } catch {
-                                      return "—"
-                                    }
-                                  })()}
-                                </div>
-                              )}
-                               {/* Attachments preview and upload */}
-                               {pre.attachments?.length ? (
-                                 <div className="pt-2 space-y-2">
-                                   <div className="text-slate-400">Attachments</div>
-                                   <div className="flex flex-wrap gap-2">
-                                     {pre.attachments.map(att => (
-                                       <a key={att.id} href={att.url} target="_blank" rel="noreferrer" className="text-xs px-2 py-1 rounded border border-white/20 text-slate-200 hover:bg-white/10">
-                                         {att.type === "pdf" ? "PDF" : "Image"}: {att.name}
-                                       </a>
-                                     ))}
-                                   </div>
-                                 </div>
-                               ) : null}
-                               <label className="inline-flex items-center gap-2 mt-2 text-xs cursor-pointer text-slate-300">
-                                 <UploadCloud className="w-4 h-4" />
-                                 <span>{isUploading ? "Uploading..." : "Attach report"}</span>
-                                 <input type="file" className="hidden" multiple accept="image/*,application/pdf" onChange={(e) => handleAttachmentUpload(pre, e.target.files)} />
-                               </label>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="mt-2 border-slate-600/40 text-slate-200 hover:bg-white/10"
-                                onClick={() => { setSelectedPrescription(pre); setShowPrescriptionDialog(true) }}
-                              >
-                                <FileText className="w-4 h-4 mr-2" /> View Prescription
-                              </Button>
+                          {hasDiagnosis ? (
+                            <div className="flex flex-wrap gap-2">
+                              {diagnosis.split(",").map(d => d.trim()).filter(Boolean).slice(0,6).map((tag, i) => (
+                                <Badge key={i} className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30">{tag}</Badge>
+                              ))}
                             </div>
                           ) : (
-                            <div className="text-sm text-slate-400">No prescription recorded</div>
+                            <div className="text-slate-400 text-sm italic">No diagnosis recorded</div>
+                          )}
+                        </div>
+
+                        {/* Prescription Section */}
+                        <div className={`rounded-lg p-3 ${hasPrescription ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-slate-500/10 border border-slate-500/20'}`}>
+                          <div className="text-slate-400 text-sm mb-2 flex items-center gap-2">
+                            <Pill className="w-4 h-4" />
+                            Prescription Details
+                          </div>
+                          {hasPrescription ? (
+                            <div className="space-y-2">
+                              {/* Medicines */}
+                              <div>
+                                <div className="text-slate-300 text-sm font-medium mb-1">Medicines:</div>
+                                {hasMedicines ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {pre.medicines!.map((med, idx) => (
+                                      <Badge key={idx} className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">
+                                        {med.name} ({med.dosage})
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-slate-400 text-sm italic">No medicines prescribed</div>
+                                )}
+                              </div>
+
+                              {/* Follow-up */}
+                              {pre.followUpDate && (
+                                <div>
+                                  <div className="text-slate-300 text-sm font-medium mb-1">Follow-up:</div>
+                                  <div className="text-slate-300 text-sm">
+                                    {(() => {
+                                      try {
+                                        const d = parseISO(pre.followUpDate)
+                                        return isNaN(d.getTime()) ? "Invalid date" : format(d, "dd MMM yyyy")
+                                      } catch {
+                                        return "Invalid date"
+                                      }
+                                    })()}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Attachments */}
+                              {hasAttachments && (
+                                <div>
+                                  <div className="text-slate-300 text-sm font-medium mb-1">Attachments:</div>
+                                  <div className="flex flex-wrap gap-2">
+                                    {pre.attachments!.map(att => (
+                                      <a key={att.id} href={att.url} target="_blank" rel="noreferrer" className="text-xs px-2 py-1 rounded border border-white/20 text-slate-200 hover:bg-white/10">
+                                        {att.type === "pdf" ? "📄 PDF" : "🖼️ Image"}: {att.name}
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Upload and View Buttons */}
+                              <div className="flex items-center gap-2 pt-2">
+                                <label className="inline-flex items-center gap-2 text-xs cursor-pointer text-slate-300 hover:text-slate-200">
+                                  <UploadCloud className="w-4 h-4" />
+                                  <span>{isUploading ? "Uploading..." : "Attach report"}</span>
+                                  <input type="file" className="hidden" multiple accept="image/*,application/pdf" onChange={(e) => handleAttachmentUpload(pre, e.target.files)} />
+                                </label>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-500/40 text-blue-200 hover:bg-blue-500/20"
+                                  onClick={() => { setSelectedPrescription(pre); setShowPrescriptionDialog(true) }}
+                                >
+                                  <Eye className="w-4 h-4 mr-2" /> View Full Prescription
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-slate-400 text-sm italic">No prescription recorded for this appointment</div>
                           )}
                         </div>
                       </CardContent>
@@ -485,7 +588,7 @@ export default function PatientMedicalHistoryPage() {
             </div>
 
             {/* Prescriptions */}
-            <div>
+            <div id="prescriptions-section">
               <div className="flex items-center gap-2 mb-4">
                 <Pill className="w-5 h-5 text-emerald-400" />
                 <h2 className="text-xl font-semibold text-white">Prescriptions</h2>
@@ -504,32 +607,75 @@ export default function PatientMedicalHistoryPage() {
                     </Card>
                   ))
                 ) : filteredPrescriptions.length === 0 ? (
-                  <Card className="border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80">
-                    <CardContent className="p-6 text-slate-300">No prescriptions in selected range.</CardContent>
+                  <Card className="border border-slate-200 bg-white">
+                    <CardContent className="p-6 text-center">
+                      <Pill className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                      <div className="text-black font-medium">No prescriptions found</div>
+                      <div className="text-black/70 text-sm">No prescriptions match your current filters.</div>
+                    </CardContent>
                   </Card>
                 ) : (
-                  filteredPrescriptions.map((pre) => (
+                  filteredPrescriptions.map((pre) => {
+                    const prescriptionDate = parsePrescriptionDate(pre.datePrescribed)
+                    
+                    return (
                     <Card key={pre.id} className="border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80">
                       <CardHeader>
                         <CardTitle className="text-white flex items-center justify-between">
                           <span>
-                            {(() => { try { const d = parseISO(pre.datePrescribed); return isNaN(d.getTime()) ? "Date not available" : format(d, "dd MMM yyyy") } catch { return "Date not available" } })()}
+                            {prescriptionDate ? format(prescriptionDate, "dd MMM yyyy") : "Date not available"}
                             {pre.timePrescribed ? ` • ${pre.timePrescribed}` : ""}
                           </span>
                           <Badge className="bg-white/10 text-slate-100 border-white/20 capitalize">{pre.doctorName}</Badge>
                         </CardTitle>
                         <CardDescription className="text-slate-400">
-                          {pre.diagnosis || pre.symptoms || "—"}
+                          {pre.diagnosis || pre.symptoms || "No diagnosis recorded"}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="text-slate-300 space-y-2">
-                        <div className="text-sm">Medicines: {pre.medicines?.map((m) => `${m.name} (${m.dosage})`).join(", ") || "—"}</div>
+                      <CardContent className="text-slate-300 space-y-3">
+                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                          <div className="text-slate-300 text-sm font-medium mb-2">Medicines</div>
+                          {pre.medicines && pre.medicines.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {pre.medicines.map((med, idx) => (
+                                <Badge key={idx} className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">
+                                  {med.name} ({med.dosage})
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-slate-400 text-sm italic">No medicines prescribed</div>
+                          )}
+                        </div>
+                        
                         {pre.followUpDate && (
-                          <div className="text-sm">Follow-up: {(() => { try { const d = parseISO(pre.followUpDate); return isNaN(d.getTime()) ? "—" : format(d, "dd MMM yyyy") } catch { return "—" } })()}</div>
+                          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
+                            <div className="text-slate-300 text-sm font-medium mb-1">Follow-up Date</div>
+                            <div className="text-slate-300 text-sm">
+                              {(() => {
+                                try {
+                                  const d = parseISO(pre.followUpDate)
+                                  return isNaN(d.getTime()) ? "Invalid date" : format(d, "dd MMM yyyy")
+                                } catch {
+                                  return "Invalid date"
+                                }
+                              })()}
+                            </div>
+                          </div>
                         )}
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full border-blue-500/40 text-blue-200 hover:bg-blue-500/20"
+                          onClick={() => { setSelectedPrescription(pre); setShowPrescriptionDialog(true) }}
+                        >
+                          <Eye className="w-4 h-4 mr-2" /> View Full Prescription
+                        </Button>
                       </CardContent>
                     </Card>
-                  ))
+                    )
+                  })
                 )}
               </div>
             </div>
@@ -585,6 +731,123 @@ export default function PatientMedicalHistoryPage() {
               </Card>
             )
           })()}
+
+          {/* Patient Profile Dialog */}
+          {patient && (
+            <Dialog open={showPatientProfileDialog} onOpenChange={setShowPatientProfileDialog}>
+              <DialogContent className="max-w-2xl bg-slate-800 border-slate-700">
+                <DialogHeader>
+                  <DialogTitle className="text-white text-xl flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    Patient Profile
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-6">
+                  {/* Basic Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="text-slate-400 text-sm">Full Name</div>
+                      <div className="text-white font-medium">{patient.name}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-slate-400 text-sm">Email</div>
+                      <div className="text-white font-medium flex items-center gap-2">
+                        <Mail className="w-4 h-4" />
+                        {patient.email}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-slate-400 text-sm">Phone</div>
+                      <div className="text-white font-medium flex items-center gap-2">
+                        <PhoneIcon className="w-4 h-4" />
+                        {patient.phone}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-slate-400 text-sm">Date of Birth</div>
+                      <div className="text-white font-medium flex items-center gap-2">
+                        <CalendarDays className="w-4 h-4" />
+                        {patient.dateOfBirth || "Not provided"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Address */}
+                  {patient.address && (
+                    <div className="space-y-2">
+                      <div className="text-slate-400 text-sm">Address</div>
+                      <div className="text-white font-medium flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        {patient.address}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Medical Info */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <div className="text-slate-400 text-sm">Blood Group</div>
+                      <div className="text-white font-medium">{patient.bloodGroup || "Not provided"}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-slate-400 text-sm">Height</div>
+                      <div className="text-white font-medium">{patient.heightCm ? `${patient.heightCm} cm` : "Not provided"}</div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-slate-400 text-sm">Weight</div>
+                      <div className="text-white font-medium">{patient.weightKg ? `${patient.weightKg} kg` : "Not provided"}</div>
+                    </div>
+                  </div>
+
+                  {/* Insurance */}
+                  {patient.insuranceProvider && (
+                    <div className="space-y-2">
+                      <div className="text-slate-400 text-sm">Insurance Provider</div>
+                      <div className="text-white font-medium">{patient.insuranceProvider}</div>
+                      {patient.policyNumber && (
+                        <div className="text-slate-400 text-sm">Policy Number: {patient.policyNumber}</div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Allergies */}
+                  {patient.allergies && patient.allergies.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-slate-400 text-sm flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        Allergies
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {patient.allergies.map((allergy, idx) => (
+                          <Badge key={idx} className="bg-amber-500/15 text-amber-300 border-amber-500/20">
+                            {allergy}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chronic Conditions */}
+                  {patient.chronicConditions && patient.chronicConditions.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-slate-400 text-sm flex items-center gap-2">
+                        <Heart className="w-4 h-4" />
+                        Chronic Conditions
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {patient.chronicConditions.map((condition, idx) => (
+                          <Badge key={idx} className="bg-pink-500/15 text-pink-300 border-pink-500/20">
+                            {condition}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+
           {/* Prescription Viewer */}
           {selectedPrescription && (
             <Dialog open={showPrescriptionDialog} onOpenChange={setShowPrescriptionDialog}>

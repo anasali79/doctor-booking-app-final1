@@ -8,11 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Users, Search, Phone, Mail, Calendar, ArrowLeft, Eye } from "lucide-react"
+import { Users, Search, Phone, Mail, Calendar, ArrowLeft, Eye, MapPin, CalendarDays, Heart, AlertTriangle, User as UserIcon } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { appointmentsAPI, patientsAPI, type Appointment, type Patient } from "@/lib/api"
 import { format, parseISO } from "date-fns"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 export default function PatientsPage() {
   const { user } = useAuth()
@@ -22,6 +23,8 @@ export default function PatientsPage() {
   const [doctorAppointments, setDoctorAppointments] = useState<Appointment[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchText, setSearchText] = useState("")
+  const [showPatientProfileDialog, setShowPatientProfileDialog] = useState(false)
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -167,7 +170,15 @@ export default function PatientsPage() {
                     </span>
                   </div>
                   <div className="pt-3 grid grid-cols-2 gap-2">
-                    <Button size="sm" className="w-full bg-teal-500 hover:bg-teal-600">
+                    <Button
+                      size="sm"
+                      className="w-full bg-teal-500 hover:bg-teal-600"
+                      onClick={() => {
+                        const full = allPatients.find((p) => p.id === patient.id) || null
+                        setSelectedPatient(full)
+                        setShowPatientProfileDialog(true)
+                      }}
+                    >
                       <Eye className="w-4 h-4 mr-2" />
                       View Details
                     </Button>
@@ -196,6 +207,121 @@ export default function PatientsPage() {
             </CardContent>
           </Card>
         </div>
+        {/* Patient Profile Dialog */}
+        {selectedPatient && (
+          <Dialog open={showPatientProfileDialog} onOpenChange={setShowPatientProfileDialog}>
+            <DialogContent className="max-w-2xl bg-slate-800 border-slate-700">
+              <DialogHeader>
+                <DialogTitle className="text-white text-xl flex items-center gap-2">
+                  <UserIcon className="w-5 h-5" />
+                  Patient Profile
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="text-slate-400 text-sm">Full Name</div>
+                    <div className="text-white font-medium">{selectedPatient.name}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-slate-400 text-sm">Email</div>
+                    <div className="text-white font-medium flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      {selectedPatient.email}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-slate-400 text-sm">Phone</div>
+                    <div className="text-white font-medium flex items-center gap-2">
+                      <Phone className="w-4 h-4" />
+                      {selectedPatient.phone}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-slate-400 text-sm">Date of Birth</div>
+                    <div className="text-white font-medium flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4" />
+                      {selectedPatient.dateOfBirth || "Not provided"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address */}
+                {selectedPatient.address && (
+                  <div className="space-y-2">
+                    <div className="text-slate-400 text-sm">Address</div>
+                    <div className="text-white font-medium flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      {selectedPatient.address}
+                    </div>
+                  </div>
+                )}
+
+                {/* Medical Info */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <div className="text-slate-400 text-sm">Blood Group</div>
+                    <div className="text-white font-medium">{selectedPatient.bloodGroup || "Not provided"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-slate-400 text-sm">Height</div>
+                    <div className="text-white font-medium">{selectedPatient.heightCm ? `${selectedPatient.heightCm} cm` : "Not provided"}</div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-slate-400 text-sm">Weight</div>
+                    <div className="text-white font-medium">{selectedPatient.weightKg ? `${selectedPatient.weightKg} kg` : "Not provided"}</div>
+                  </div>
+                </div>
+
+                {/* Insurance */}
+                {selectedPatient.insuranceProvider && (
+                  <div className="space-y-2">
+                    <div className="text-slate-400 text-sm">Insurance Provider</div>
+                    <div className="text-white font-medium">{selectedPatient.insuranceProvider}</div>
+                    {selectedPatient.policyNumber && (
+                      <div className="text-slate-400 text-sm">Policy Number: {selectedPatient.policyNumber}</div>
+                    )}
+                  </div>
+                )}
+
+                {/* Allergies */}
+                {selectedPatient.allergies && selectedPatient.allergies.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-slate-400 text-sm flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      Allergies
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedPatient.allergies.map((allergy, idx) => (
+                        <Badge key={idx} className="bg-amber-500/15 text-amber-300 border-amber-500/20">
+                          {allergy}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Chronic Conditions */}
+                {selectedPatient.chronicConditions && selectedPatient.chronicConditions.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-slate-400 text-sm flex items-center gap-2">
+                      <Heart className="w-4 h-4" />
+                      Chronic Conditions
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedPatient.chronicConditions.map((condition, idx) => (
+                        <Badge key={idx} className="bg-pink-500/15 text-pink-300 border-pink-500/20">
+                          {condition}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </ProtectedRoute>
   )
