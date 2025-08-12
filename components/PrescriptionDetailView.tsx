@@ -34,7 +34,7 @@ type Props = {
 
 export function PrescriptionDetailView({ prescription, patient, doctor }: Props) {
   // Updated QR code to point to local scan page with 's'
-  const prescriptionScanUrl = `https://doctor-booking-app-final1.vercel.app/${prescription.id}`
+  const prescriptionScanUrl = `https://doctor-booking-app-final1.vercel.app/prescriptions/scan/${prescription.id}`
 
   return (
     <div className="min-h-screen bg-[#0c3a53] p-4 print:bg-white print:p-0">
