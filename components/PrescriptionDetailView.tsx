@@ -34,7 +34,7 @@ type Props = {
 
 export function PrescriptionDetailView({ prescription, patient, doctor }: Props) {
   // Updated QR code to point to local scan page with 's'
-  const prescriptionScanUrl = `https://doctor-booking-app-orpin.vercel.app/${prescription.id}`
+  const prescriptionScanUrl = `https://doctor-booking-app-final1.vercel.app/${prescription.id}`
 
   return (
     <div className="min-h-screen bg-[#0c3a53] p-4 print:bg-white print:p-0">
@@ -239,7 +239,7 @@ export function PrescriptionDetailView({ prescription, patient, doctor }: Props)
                 </div>
                 <div className="flex items-center gap-2">
                   <Globe className="h-4 w-4 text-black" />
-                  <span>{"https://doctor-booking-app-orpin.vercel.app"}</span>
+                  <span>{"https://doctor-booking-app-final1.vercel.app/"}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-black" />

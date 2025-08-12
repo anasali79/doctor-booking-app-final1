@@ -39,7 +39,7 @@ export function PrescriptionScanActions({ prescription, patient, doctor }: Props
 
   const handleBookFollowUp = () => {
     // Redirect to local booking page with 's'
-    window.open(`https://doctor-booking-app-orpin.vercel.app/${prescription.doctorId}?type=clinic`, "_blank")
+    window.open(`https://doctor-booking-app-final1.vercel.app/${prescription.doctorId}?type=clinic`, "_blank")
   }
 
   const handleOrderMedicine = () => {
@@ -203,7 +203,7 @@ export function PrescriptionScanActions({ prescription, patient, doctor }: Props
           </p>
           <p className="text-xs">
             Contact us at <a href="mailto:support@medicare.com">support@medicare.com</a> | Visit us at{" "}
-            <span>{"https://doctor-booking-app-orpin.vercel.app"}</span>
+            <span>{"https://doctor-booking-app-final1.vercel.app/"}</span>
           </p>
         </div>
       </div>
