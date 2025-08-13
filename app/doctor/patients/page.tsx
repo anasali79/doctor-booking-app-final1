@@ -293,11 +293,19 @@ export default function PatientsPage() {
                       Allergies
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {selectedPatient.allergies.map((allergy, idx) => (
-                        <Badge key={idx} className="bg-amber-500/15 text-amber-300 border-amber-500/20">
-                          {allergy}
-                        </Badge>
-                      ))}
+                    {Array.isArray(selectedPatient.allergies) ? (
+  selectedPatient.allergies.map((allergy, idx) => (
+    <Badge key={idx} className="bg-amber-500/15 text-amber-300 border-amber-500/20">
+      {allergy}
+    </Badge>
+  ))
+) : selectedPatient.allergies ? (
+  <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/20">
+    {selectedPatient.allergies}
+  </Badge>
+) : (
+  <span className="text-slate-500">No allergies recorded</span>
+)}
                     </div>
                   </div>
                 )}
@@ -310,11 +318,19 @@ export default function PatientsPage() {
                       Chronic Conditions
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {selectedPatient.chronicConditions.map((condition, idx) => (
-                        <Badge key={idx} className="bg-pink-500/15 text-pink-300 border-pink-500/20">
-                          {condition}
-                        </Badge>
-                      ))}
+                    {Array.isArray(selectedPatient.chronicConditions) ? (
+  selectedPatient.chronicConditions.map((condition, idx) => (
+    <Badge key={idx} className="bg-pink-500/15 text-pink-300 border-pink-500/20">
+      {condition}
+    </Badge>
+  ))
+) : selectedPatient.chronicConditions ? (
+  <Badge className="bg-pink-500/15 text-pink-300 border-pink-500/20">
+    {selectedPatient.chronicConditions}
+  </Badge>
+) : (
+  <span className="text-slate-500">No chronic conditions recorded</span>
+)}
                     </div>
                   </div>
                 )}

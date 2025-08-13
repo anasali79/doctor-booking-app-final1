@@ -692,9 +692,15 @@ export default function PatientMedicalHistoryPage() {
                   <div>
                     <div className="text-slate-400 text-sm mb-1">Allergies</div>
                     <div className="flex flex-wrap gap-2">
-                      {patient.allergies.map((a, i) => (
-                        <Badge key={i} className="bg-amber-500/15 text-amber-300 border-amber-500/20">{a}</Badge>
-                      ))}
+                    {Array.isArray(patient.allergies) ? (
+  patient.allergies.map((a, i) => (
+    <Badge key={i} className="bg-amber-500/15 text-amber-300 border-amber-500/20">{a}</Badge>
+  ))
+) : patient.allergies ? (
+  <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/20">{patient.allergies}</Badge>
+) : (
+  <span className="text-slate-500">No allergies recorded</span>
+)}
                     </div>
                   </div>
                 ) : null}
@@ -702,9 +708,15 @@ export default function PatientMedicalHistoryPage() {
                   <div>
                     <div className="text-slate-400 text-sm mb-1">Chronic Conditions</div>
                     <div className="flex flex-wrap gap-2">
-                      {patient.chronicConditions.map((c, i) => (
-                        <Badge key={i} className="bg-pink-500/15 text-pink-300 border-pink-500/20">{c}</Badge>
-                      ))}
+                    {Array.isArray(patient.chronicConditions) ? (
+  patient.chronicConditions.map((c, i) => (
+    <Badge key={i} className="bg-pink-500/15 text-pink-300 border-pink-500/20">{c}</Badge>
+  ))
+) : patient.chronicConditions ? (
+  <Badge className="bg-pink-500/15 text-pink-300 border-pink-500/20">{patient.chronicConditions}</Badge>
+) : (
+  <span className="text-slate-500">No chronic conditions recorded</span>
+)}
                     </div>
                   </div>
                 ) : null}
@@ -818,11 +830,15 @@ export default function PatientMedicalHistoryPage() {
                         Allergies
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {patient.allergies.map((allergy, idx) => (
-                          <Badge key={idx} className="bg-amber-500/15 text-amber-300 border-amber-500/20">
-                            {allergy}
-                          </Badge>
-                        ))}
+                      {Array.isArray(patient.chronicConditions) ? (
+  patient.chronicConditions.map((c, i) => (
+    <Badge key={i} className="bg-pink-500/15 text-pink-300 border-pink-500/20">{c}</Badge>
+  ))
+) : patient.chronicConditions ? (
+  <Badge className="bg-pink-500/15 text-pink-300 border-pink-500/20">{patient.chronicConditions}</Badge>
+) : (
+  <span className="text-slate-500">No chronic conditions recorded</span>
+)}
                       </div>
                     </div>
                   )}
@@ -835,11 +851,19 @@ export default function PatientMedicalHistoryPage() {
                         Chronic Conditions
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {patient.chronicConditions.map((condition, idx) => (
-                          <Badge key={idx} className="bg-pink-500/15 text-pink-300 border-pink-500/20">
-                            {condition}
-                          </Badge>
-                        ))}
+                      {Array.isArray(patient.chronicConditions) ? (
+  patient.chronicConditions.map((condition, idx) => (
+    <Badge key={idx} className="bg-pink-500/15 text-pink-300 border-pink-500/20">
+      {condition}
+    </Badge>
+  ))
+) : patient.chronicConditions ? (
+  <Badge className="bg-pink-500/15 text-pink-300 border-pink-500/20">
+    {patient.chronicConditions}
+  </Badge>
+) : (
+  <span className="text-slate-500">No chronic conditions recorded</span>
+)}
                       </div>
                     </div>
                   )}
