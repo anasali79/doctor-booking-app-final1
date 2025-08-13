@@ -67,18 +67,17 @@ export function SpecialtySlider({ title, onSpecialtySelect, className, ...props 
     <section
       aria-label={title}
       className={cn(
-        "w-full py-8 md:py-10 relative",
-        // transparent so it inherits the page's navy gradient; no dark band
-        "bg-transparent",
+        // Constrain width; slightly wider in dark theme for better balance
+        "w-full md:w-5/6 lg:w-3/4 xl:w-7/12 dark:md:w-11/12 dark:lg:w-5/6 dark:xl:w-2/3 mx-auto py-8 md:py-10 relative bg-transparent",
         className,
       )}
       {...props}
     >
       <div className="mb-6 md:mb-8 text-center">
-        <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-200 via-cyan-200 to-indigo-200 bg-clip-text text-transparent">
+        <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-blue-200 dark:via-cyan-200 dark:to-indigo-200">
           {title}
         </h2>
-        <p className="mt-2 text-slate-300/90 text-base md:text-lg">
+        <p className="mt-2 text-muted-foreground dark:text-slate-300/90 text-base md:text-lg">
           Choose from our wide range of medical specialties with expert doctors
         </p>
       </div>
@@ -99,7 +98,10 @@ export function SpecialtySlider({ title, onSpecialtySelect, className, ...props 
               className={cn(
                 // Bigger cards
                 "min-w-[220px] sm:min-w-[240px] md:min-w-[260px]",
-                "rounded-2xl border border-white/10 bg-white/5/50 hover:bg-white/10 backdrop-blur",
+                // Light theme card
+                "rounded-2xl border bg-white hover:bg-slate-50 border-gray-200 text-slate-900",
+                // Dark theme overrides
+                "dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white backdrop-blur",
                 "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl",
                 "text-left p-5 md:p-6",
               )}
@@ -115,8 +117,8 @@ export function SpecialtySlider({ title, onSpecialtySelect, className, ...props 
                   <Icon className="size-7 md:size-8 text-white" />
                 </div>
                 <div>
-                  <div className="text-white font-semibold text-lg md:text-xl">{name}</div>
-                  <div className="text-slate-400 text-sm md:text-base">{description}</div>
+                  <div className="text-foreground dark:text-white font-semibold text-lg md:text-xl">{name}</div>
+                  <div className="text-muted-foreground dark:text-slate-400 text-sm md:text-base">{description}</div>
                 </div>
               </div>
             </button>
@@ -125,6 +127,12 @@ export function SpecialtySlider({ title, onSpecialtySelect, className, ...props 
 
         {/* Removed the decorative gradient underline/progress line under the slider */}
       </div>
+
+      {/* Hide horizontal scrollbar globally for this utility class */}
+      <style jsx global>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
     </section>
   )
 }

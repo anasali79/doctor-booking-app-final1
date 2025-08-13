@@ -4,14 +4,14 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { Heart, Video, Phone, User, LogOut, Menu, X, Calendar } from "lucide-react"
+import { Heart, Video, Phone, User, LogOut, Menu, X, Calendar, FileText, Activity, Clock, Users, Building } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
 
-export function ModernNavbar() {
+export function DoctorNavbar() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -24,12 +24,15 @@ export function ModernNavbar() {
 
   const navLinks = useMemo(
     () => [
-      { href: "/find-doctors", label: "Find Doctor", icon: User },
-      { href: "/consultations/video", label: "Video Call", icon: Video },
-      { href: "/consultations/call", label: "Phone Call", icon: Phone },
-      ...(user ? [{ href: "/appointments", label: "Appointments", icon: Calendar } as const] : []),
+      { href: "/doctor/dashboard", label: "Dashboard", icon: Activity },
+      { href: "/doctor/appointments", label: "Appointments", icon: Calendar },
+      { href: "/doctor/patients", label: "Patients", icon: Users },
+      { href: "/doctor/prescriptions", label: "Prescriptions", icon: FileText },
+      { href: "/doctor/schedule", label: "Schedule", icon: Clock },
+      { href: "/doctor/reviews", label: "Reviews", icon: Heart },
+      { href: "/doctor/analytics", label: "Analytics", icon: Building },
     ],
-    [user],
+    [],
   )
 
   const isActive = (href: string) => {
@@ -44,23 +47,23 @@ export function ModernNavbar() {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
       role="navigation"
-      aria-label="Main"
+      aria-label="Doctor Navigation"
     >
-      <div className="h-px w-full bg-gradient-to-r from-fuchsia-500/60 via-violet-500/60 to-cyan-500/60 dark:from-fuchsia-400/60 dark:via-violet-400/60 dark:to-cyan-400/60" />
+      <div className="h-px w-full bg-gradient-to-r from-teal-400/60 via-blue-400/60 to-cyan-400/60" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Brand */}
-          <Link href="/" className="flex items-center gap-3" aria-label="MediCare Home">
+          <Link href="/doctor/dashboard" className="flex items-center gap-3" aria-label="Doctor Portal">
             <motion.div
-              className="size-10 rounded-xl bg-gradient-to-br from-fuchsia-600 via-violet-600 to-cyan-600 flex items-center justify-center shadow-lg shadow-fuchsia-600/20"
+              className="size-10 rounded-xl bg-gradient-to-br from-teal-600 via-blue-600 to-cyan-600 flex items-center justify-center shadow-lg shadow-teal-600/20"
               whileHover={{ scale: 1.06, rotate: 3 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               <Heart className="size-5 text-white" />
             </motion.div>
-            <span className="text-xl sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-fuchsia-700 via-violet-700 to-cyan-700 bg-clip-text text-transparent dark:from-fuchsia-400 dark:via-violet-400 dark:to-cyan-400">
-              MediCare
+            <span className="text-xl sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-teal-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent">
+              Doctor Portal
             </span>
           </Link>
 
@@ -73,10 +76,10 @@ export function ModernNavbar() {
                   <Link
                     href={href}
                     aria-current={active ? "page" : undefined}
-                     className={[
-                       "group/nav relative flex items-center gap-2 rounded-lg px-3 py-2 font-medium transition-colors",
-                       active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-                     ].join(" ")}
+                    className={[
+                      "group/nav relative flex items-center gap-2 rounded-lg px-3 py-2 font-medium transition-colors",
+                      active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+                    ].join(" ")}
                   >
                     {/* Hover box */}
                     <span
@@ -103,7 +106,7 @@ export function ModernNavbar() {
                     {active && (
                       <motion.span
                         layoutId="active-underline"
-                        className="absolute -bottom-1 left-2 right-2 h-0.5 rounded-full bg-gradient-to-r from-fuchsia-400 via-violet-400 to-cyan-400"
+                        className="absolute -bottom-1 left-2 right-2 h-0.5 rounded-full bg-gradient-to-r from-teal-400 via-blue-400 to-cyan-400"
                         transition={{ type: "spring", stiffness: 380, damping: 30 }}
                       />
                     )}
@@ -122,40 +125,38 @@ export function ModernNavbar() {
                   <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.98 }}>
                     <Button variant="ghost" className="h-10 w-10 rounded-full p-0">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-gradient-to-br from-fuchsia-600 via-violet-600 to-cyan-600 text-white font-semibold">
-                          {user.name?.charAt(0)?.toUpperCase() ?? "U"}
+                        <AvatarFallback className="bg-gradient-to-br from-teal-600 via-blue-600 to-cyan-600 text-white font-semibold">
+                          {user.name?.charAt(0)?.toUpperCase() ?? "D"}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
                   </motion.div>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur border-border" align="end" forceMount>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
                   <div className="flex items-center gap-2 p-2">
                     <div className="flex flex-col">
-                      <p className="font-medium text-foreground">{user.name}</p>
+                      <p className="font-medium">Dr. {user.name}</p>
                       <p className="w-[200px] truncate text-sm text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
                   <DropdownMenuItem asChild>
-                    <Link href="/profile">
+                    <Link href="/doctor/profile">
                       <User className="mr-2 h-4 w-4" />
                       Profile
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/appointments">
+                    <Link href="/doctor/dashboard">
+                      <Activity className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/doctor/appointments">
                       <Calendar className="mr-2 h-4 w-4" />
                       Appointments
                     </Link>
                   </DropdownMenuItem>
-                  {user.role === "doctor" && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/doctor/dashboard">
-                        <Heart className="mr-2 h-4 w-4" />
-                        Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
@@ -168,7 +169,7 @@ export function ModernNavbar() {
                   <Link href="/auth">
                     <Button
                       variant="outline"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent dark:border-white/20 dark:text-zinc-200 dark:hover:bg-white/10"
+                      className="border-border text-foreground hover:bg-muted bg-transparent"
                     >
                       Login
                     </Button>
@@ -176,7 +177,7 @@ export function ModernNavbar() {
                 </motion.div>
                 <motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }}>
                   <Link href="/auth">
-                    <Button className="bg-gradient-to-r from-fuchsia-600 via-violet-600 to-cyan-600 hover:from-fuchsia-700 hover:via-violet-700 hover:to-cyan-700 text-white">
+                    <Button className="bg-gradient-to-r from-teal-600 via-blue-600 to-cyan-600 hover:from-teal-700 hover:via-blue-700 hover:to-cyan-700">
                       Sign Up
                     </Button>
                   </Link>
@@ -223,7 +224,6 @@ export function ModernNavbar() {
             </motion.div>
           </div>
         </div>
-      
 
         {/* Mobile Navigation */}
         <AnimatePresence>
@@ -258,7 +258,7 @@ export function ModernNavbar() {
                         {active && (
                           <motion.span
                             layoutId="mobile-active-bar"
-                            className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1.5 rounded-r-full bg-gradient-to-b from-fuchsia-400 via-violet-400 to-cyan-400"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1.5 rounded-r-full bg-gradient-to-b from-teal-400 via-blue-400 to-cyan-400"
                           />
                         )}
 
@@ -270,7 +270,6 @@ export function ModernNavbar() {
                                       "bg-muted ring-1 ring-border",
                       "transition-all duration-300 ease-in-out transform group-hover/mob:scale-105"
                          ].join(" ")}/>
-
 
                         {/* Active base */}
                         {active && (
@@ -305,7 +304,7 @@ export function ModernNavbar() {
                       </Button>
                     </Link>
                     <Link href="/auth" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Button className="w-full bg-gradient-to-r from-fuchsia-600 via-violet-600 to-cyan-600 hover:from-fuchsia-700 hover:via-violet-700 hover:to-cyan-700">
+                      <Button className="w-full bg-gradient-to-r from-teal-600 via-blue-600 to-cyan-600 hover:from-teal-700 hover:via-blue-700 hover:to-cyan-700">
                         Sign Up
                       </Button>
                     </Link>
@@ -317,7 +316,7 @@ export function ModernNavbar() {
                     animate={{ opacity: 1 }}
                   >
                     <Link
-                      href="/profile"
+                      href="/doctor/profile"
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="flex items-center gap-3 px-3 py-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     >

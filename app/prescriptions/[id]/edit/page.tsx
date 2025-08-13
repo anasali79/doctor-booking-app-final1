@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
-import { Navbar } from "@/components/Navbar"
+import { DoctorNavbar } from "@/components/DoctorNavbar"
 import { PrescriptionForm } from "@/components/PrescriptionForm"
 import { prescriptionsAPI, type Prescription } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
@@ -57,13 +57,13 @@ export default function EditPrescriptionPage() {
   if (isLoading) {
     return (
       <ProtectedRoute allowedRoles={["doctor"]}>
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-          <Navbar />
+        <div className="min-h-screen pt-24 bg-gradient-to-br from-background via-muted/20 to-background dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+          <DoctorNavbar />
           <div className="max-w-4xl mx-auto px-4 py-8">
-            <Card className="text-center py-12 bg-slate-800 border-slate-700 text-white">
+            <Card className="text-center py-12 bg-card/80 dark:bg-slate-800 border border-border/50 dark:border-slate-700 text-foreground dark:text-white">
               <CardContent>
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-4 text-slate-400">Loading prescription...</p>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Loading prescription...</p>
               </CardContent>
             </Card>
           </div>
@@ -75,14 +75,14 @@ export default function EditPrescriptionPage() {
   if (!prescription) {
     return (
       <ProtectedRoute allowedRoles={["doctor"]}>
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-          <Navbar />
+        <div className="min-h-screen pt-24 bg-gradient-to-br from-background via-muted/20 to-background dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+          <DoctorNavbar />
           <div className="max-w-4xl mx-auto px-4 py-8">
-            <Card className="text-center py-12 bg-slate-800 border-slate-700 text-white">
+            <Card className="text-center py-12 bg-card/80 dark:bg-slate-800 border border-border/50 dark:border-slate-700 text-foreground dark:text-white">
               <CardContent>
-                <h3 className="text-xl font-semibold text-white mb-2">Prescription not found</h3>
-                <p className="text-slate-400">The prescription you're looking for doesn't exist.</p>
-                <Button className="mt-4 bg-teal-500 hover:bg-teal-600" onClick={() => router.push("/doctor/prescriptions")}>
+                <h3 className="text-xl font-semibold text-foreground dark:text-white mb-2">Prescription not found</h3>
+                <p className="text-muted-foreground">The prescription you're looking for doesn't exist.</p>
+                <Button className="mt-4 bg-teal-600 hover:bg-teal-700" onClick={() => router.push("/doctor/prescriptions")}>
                   Back to Prescriptions
                 </Button>
               </CardContent>
@@ -95,20 +95,20 @@ export default function EditPrescriptionPage() {
 
   return (
     <ProtectedRoute allowedRoles={["doctor"]}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
+      <div className="min-h-screen pt-24 bg-gradient-to-br from-background via-muted/20 to-background dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <DoctorNavbar />
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex items-center mb-8">
             <Button
               variant="outline"
               size="sm"
               onClick={() => router.back()}
-              className="mr-4 border-slate-600 text-slate-300 hover:bg-slate-700/50 bg-transparent"
+              className="mr-4 border-border dark:border-slate-600 text-foreground dark:text-slate-300 hover:bg-muted/50 dark:hover:bg-slate-700/50 bg-transparent"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground via-muted-foreground to-muted-foreground bg-clip-text text-transparent dark:from-white dark:via-slate-200 dark:to-slate-400">
               Edit Prescription
             </h1>
           </div>
@@ -120,7 +120,7 @@ export default function EditPrescriptionPage() {
             doctorName={prescription.doctorName}
             initialData={prescription}
             onSuccess={handleSuccess}
-            onClose={() => router.push("/prescriptions")}
+            onClose={() => router.push("/doctor/prescriptions")}
           />
         </div>
       </div>

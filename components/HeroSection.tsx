@@ -16,14 +16,15 @@ const floatingElements = [
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
+    <section className="relative min-h-screen overflow-hidden bg-gradient-to-br from-white via-slate-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
       {/* Animated Background Pattern */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute top-0 left-0 w-full h-full">
-          <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute top-40 right-32 w-24 h-24 bg-gradient-to-r from-green-400 to-blue-400 rounded-full blur-2xl animate-pulse delay-1000"></div>
-          <div className="absolute bottom-32 left-32 w-40 h-40 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full blur-3xl animate-pulse delay-2000"></div>
-          <div className="absolute bottom-20 right-20 w-28 h-28 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-2xl animate-pulse delay-3000"></div>
+          {/* Keep blobs in both themes, soften in light */}
+          <div className="absolute top-20 left-20 w-32 h-32 rounded-full blur-3xl animate-pulse bg-gradient-to-r from-blue-300 to-purple-300 dark:from-blue-400 dark:to-purple-400"></div>
+          <div className="absolute top-40 right-32 w-24 h-24 rounded-full blur-2xl animate-pulse delay-1000 bg-gradient-to-r from-emerald-300 to-cyan-300 dark:from-green-400 dark:to-blue-400"></div>
+          <div className="absolute bottom-32 left-32 w-40 h-40 rounded-full blur-3xl animate-pulse delay-2000 bg-gradient-to-r from-purple-300 to-pink-300 dark:from-purple-400 dark:to-pink-400"></div>
+          <div className="absolute bottom-20 right-20 w-28 h-28 rounded-full blur-2xl animate-pulse delay-3000 bg-gradient-to-r from-yellow-300 to-orange-300 dark:from-yellow-400 dark:to-orange-400"></div>
         </div>
       </div>
 
@@ -68,27 +69,27 @@ export function HeroSection() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="inline-flex mb-6"
           >
-            <Badge className="bg-gradient-to-r from-blue-100/20 to-purple-100/20 text-blue-300 border-blue-500/30 px-4 py-2 text-sm font-medium backdrop-blur-sm">
+            <Badge className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200 px-4 py-2 text-sm font-medium backdrop-blur-sm dark:from-blue-100/20 dark:to-purple-100/20 dark:text-blue-300 dark:border-blue-500/30">
               <Heart className="w-4 h-4 mr-2" />
               India's #1 Healthcare Platform 🇮🇳
             </Badge>
           </motion.div>
 
           <motion.h1
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 sm:mb-8 leading-tight"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 dark:text-white mb-6 sm:mb-8 leading-tight"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
             Your Health,
             <br />
-            <span className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-yellow-500 via-orange-600 to-red-600 bg-clip-text text-transparent dark:from-yellow-400 dark:via-orange-500 dark:to-red-500">
               Our Priority
             </span>
           </motion.h1>
 
           <motion.p
-            className="text-lg sm:text-xl md:text-2xl text-slate-300 mb-8 sm:mb-12 max-w-4xl mx-auto leading-relaxed"
+            className="text-lg sm:text-xl md:text-2xl text-gray-600 dark:text-slate-300 mb-8 sm:mb-12 max-w-4xl mx-auto leading-relaxed"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.5 }}
@@ -107,7 +108,7 @@ export function HeroSection() {
             transition={{ duration: 0.8, delay: 0.6 }}
             whileHover={{ y: -10 }}
           >
-            <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm shadow-2xl hover:shadow-3xl transition-all duration-500 cursor-pointer h-full">
+            <Card className="group relative overflow-hidden border border-gray-200 bg-white/90 backdrop-blur-sm shadow-2xl hover:shadow-3xl transition-all duration-500 cursor-pointer h-full dark:border-0 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80">
               {/* Background Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -119,17 +120,17 @@ export function HeroSection() {
                 >
                   <MapPin className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                 </motion.div>
-                <CardTitle className="text-white text-xl sm:text-2xl font-bold mb-3 group-hover:text-blue-300 transition-colors duration-300">
+                <CardTitle className="text-gray-900 dark:text-white text-xl sm:text-2xl font-bold mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors duration-300">
                   Find Doctor Nearby
                 </CardTitle>
-                <CardDescription className="text-slate-400 text-base sm:text-lg leading-relaxed">
+                <CardDescription className="text-gray-600 dark:text-slate-400 text-base sm:text-lg leading-relaxed">
                   Discover qualified doctors in your area with ratings and reviews
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center relative z-10 pb-6 sm:pb-8">
                 <Link href="/find-doctors">
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 group-hover:bg-gradient-to-r group-hover:from-blue-500 group-hover:to-cyan-500 group-hover:border-transparent transition-all duration-300 py-3 sm:py-4 text-base font-semibold shadow-lg hover:shadow-xl backdrop-blur-sm">
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white border-0 group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-cyan-600 transition-all duration-300 py-3 sm:py-4 text-base font-semibold shadow-lg hover:shadow-xl backdrop-blur-sm dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 dark:hover:border-white/40">
                       Explore Doctors
                       <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                     </Button>
@@ -146,7 +147,7 @@ export function HeroSection() {
             transition={{ duration: 0.8, delay: 0.7 }}
             whileHover={{ y: -10 }}
           >
-            <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm shadow-2xl hover:shadow-3xl transition-all duration-500 cursor-pointer h-full">
+            <Card className="group relative overflow-hidden border border-gray-200 bg-white/90 backdrop-blur-sm shadow-2xl hover:shadow-3xl transition-all duration-500 cursor-pointer h-full dark:border-0 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80">
               {/* Background Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -158,17 +159,17 @@ export function HeroSection() {
                 >
                   <Video className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                 </motion.div>
-                <CardTitle className="text-white text-xl sm:text-2xl font-bold mb-3 group-hover:text-emerald-300 transition-colors duration-300">
+                <CardTitle className="text-gray-900 dark:text-white text-xl sm:text-2xl font-bold mb-3 group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors duration-300">
                   Video Consultation
                 </CardTitle>
-                <CardDescription className="text-slate-400 text-base sm:text-lg leading-relaxed">
+                <CardDescription className="text-gray-600 dark:text-slate-400 text-base sm:text-lg leading-relaxed">
                   Get instant medical advice through secure video calls
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center relative z-10 pb-6 sm:pb-8">
                 <Link href="/consultations/video">
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 group-hover:bg-gradient-to-r group-hover:from-emerald-500 group-hover:to-teal-500 group-hover:border-transparent transition-all duration-300 py-3 sm:py-4 text-base font-semibold shadow-lg hover:shadow-xl backdrop-blur-sm">
+                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white border-0 group-hover:bg-gradient-to-r group-hover:from-emerald-600 group-hover:to-teal-600 transition-all duration-300 py-3 sm:py-4 text-base font-semibold shadow-lg hover:shadow-xl backdrop-blur-sm dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 dark:hover:border-white/40">
                       Start Video Call
                       <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                     </Button>
@@ -186,7 +187,7 @@ export function HeroSection() {
             whileHover={{ y: -10 }}
             className="md:col-span-2 lg:col-span-1"
           >
-            <Card className="group relative overflow-hidden border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm shadow-2xl hover:shadow-3xl transition-all duration-500 cursor-pointer h-full">
+            <Card className="group relative overflow-hidden border border-gray-200 bg-white/90 backdrop-blur-sm shadow-2xl hover:shadow-3xl transition-all duration-500 cursor-pointer h-full dark:border-0 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80">
               {/* Background Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -198,17 +199,17 @@ export function HeroSection() {
                 >
                   <Phone className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                 </motion.div>
-                <CardTitle className="text-white text-xl sm:text-2xl font-bold mb-3 group-hover:text-purple-300 transition-colors duration-300">
+                <CardTitle className="text-gray-900 dark:text-white text-xl sm:text-2xl font-bold mb-3 group-hover:text-purple-700 dark:group-hover:text-purple-300 transition-colors duration-300">
                   Call Consultation
                 </CardTitle>
-                <CardDescription className="text-slate-400 text-base sm:text-lg leading-relaxed">
+                <CardDescription className="text-gray-600 dark:text-slate-400 text-base sm:text-lg leading-relaxed">
                   Quick medical consultation over phone calls
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-center relative z-10 pb-6 sm:pb-8">
                 <Link href="/consultations/call">
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 group-hover:bg-gradient-to-r group-hover:from-purple-500 group-hover:to-pink-500 group-hover:border-transparent transition-all duration-300 py-3 sm:py-4 text-base font-semibold shadow-lg hover:shadow-xl backdrop-blur-sm">
+                    <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white border-0 group-hover:bg-gradient-to-r group-hover:from-purple-600 group-hover:to-pink-600 transition-all duration-300 py-3 sm:py-4 text-base font-semibold shadow-lg hover:shadow-xl backdrop-blur-sm dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border dark:border-white/20 dark:hover:border-white/40">
                       Make a Call
                       <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2 group-hover:translate-x-1 transition-transform duration-300" />
                     </Button>

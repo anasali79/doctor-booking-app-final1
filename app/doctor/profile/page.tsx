@@ -3,7 +3,7 @@ import type React from "react"
 import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
-import { Navbar } from "@/components/Navbar"
+import { DoctorNavbar } from "@/components/DoctorNavbar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,13 +11,15 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { User, Phone, Mail, Stethoscope, GraduationCap, MapPin, Clock, Loader2 } from 'lucide-react'
+import { User, Star } from 'lucide-react'
+import { reviewsAPI } from '@/lib/api'
 
 export default function DoctorProfilePage() {
   const { user, updateUser } = useAuth()
   const { toast } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [isLoading, setIsLoading] = useState(false) // New loading state
+  const [reviews, setReviews] = useState<any[]>([])
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -55,189 +57,142 @@ export default function DoctorProfilePage() {
 
   return (
     <ProtectedRoute allowedRoles={["doctor"]}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <DoctorNavbar />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center mb-8">
-            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent mb-4">
+            <div className="inline-flex items-center space-x-2 bg-teal-500/10 text-teal-600 dark:text-teal-300 px-4 py-2 rounded-full text-sm font-medium mb-4 border border-teal-500/20">
+              <User className="w-4 h-4" />
+              <span>Doctor Portal</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-foreground via-muted-foreground to-muted-foreground/60 bg-clip-text text-transparent mb-4">
               Doctor Profile
             </h1>
-            <p className="text-slate-400 text-lg sm:text-xl">Manage your professional information</p>
+            <p className="text-muted-foreground text-base sm:text-xl max-w-2xl mx-auto">
+              Manage your professional information and practice details
+            </p>
           </div>
-          <Card className="mb-6 border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm shadow-2xl">
-            <CardHeader className="border-b border-slate-700/50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-xl sm:text-2xl font-bold text-white flex items-center">
-                    <User className="w-6 h-6 mr-2 text-teal-400" />
-                    Personal Information
-                  </CardTitle>
-                  <CardDescription className="text-slate-400 mt-2 text-sm sm:text-base">
-                    Update your basic details
-                  </CardDescription>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="border-teal-500/30 text-teal-300 hover:bg-teal-500/10 bg-transparent"
-                >
-                  {isEditing ? "Cancel" : "Edit"}
-                </Button>
-              </div>
+
+          <Card className="border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 backdrop-blur-sm shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-foreground dark:text-white">Personal Information</CardTitle>
+              <CardDescription className="text-muted-foreground dark:text-slate-400">
+                Update your personal and professional details
+              </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6">
+            <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label htmlFor="name" className="text-slate-300">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                      <Input
-                        id="name"
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => handleInputChange("name", e.target.value)}
-                        disabled={!isEditing}
-                        className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                        required
-                      />
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-foreground dark:text-slate-300">
+                      Full Name
+                    </Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="bg-muted/50 dark:bg-slate-800/50 border-border dark:border-slate-700 text-foreground dark:text-white"
+                    />
                   </div>
-                  <div>
-                    <Label htmlFor="phone" className="text-slate-300">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => handleInputChange("phone", e.target.value)}
-                        disabled={!isEditing}
-                        className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="email" className="text-slate-300">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-foreground dark:text-slate-300">
+                      Email
+                    </Label>
                     <Input
                       id="email"
                       type="email"
                       value={formData.email}
-                      onChange={(e) => handleInputChange("email", e.target.value)}
-                      disabled={!isEditing}
-                      className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                      required
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="bg-muted/50 dark:bg-slate-800/50 border-border dark:border-slate-700 text-foreground dark:text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-foreground dark:text-slate-300">
+                      Phone Number
+                    </Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="bg-muted/50 dark:bg-slate-800/50 border-border dark:border-slate-700 text-foreground dark:text-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="specialty" className="text-foreground dark:text-slate-300">
+                      Medical Specialty
+                    </Label>
+                    <Input
+                      id="specialty"
+                      value={formData.specialty}
+                      onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
+                      className="bg-muted/50 dark:bg-slate-800/50 border-border dark:border-slate-700 text-foreground dark:text-white"
                     />
                   </div>
                 </div>
-                {isEditing && (
-                  <div className="flex justify-end space-x-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsEditing(false)}
-                      className="border-slate-600 text-slate-300 hover:bg-slate-700/50 bg-transparent"
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={isLoading} className="bg-teal-500 hover:bg-teal-600 text-white">
-                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Save Changes
-                    </Button>
-                  </div>
-                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="clinicAddress" className="text-foreground dark:text-slate-300">
+                    Clinic Address
+                  </Label>
+                  <Input
+                    id="clinicAddress"
+                    value={formData.clinicAddress}
+                    onChange={(e) => setFormData({ ...formData, clinicAddress: e.target.value })}
+                    className="bg-muted/50 dark:bg-slate-800/50 border-border dark:border-slate-700 text-foreground dark:text-white"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setFormData({
+                      name: user?.name || "",
+                      email: user?.email || "",
+                      phone: user?.phone || "",
+                      specialty: user?.specialty || "",
+                      qualifications: user?.qualifications || "",
+                      experience: user?.experience || "",
+                      clinicAddress: user?.clinicAddress || "",
+                    })}
+                    className="border-border dark:border-slate-600 text-foreground dark:text-slate-300 bg-transparent"
+                  >
+                    Reset
+                  </Button>
+                  <Button type="submit" className="bg-teal-500 hover:bg-teal-600">
+                    {isLoading ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
-          {/* Professional Information */}
-          <Card className="border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm shadow-2xl">
-            <CardHeader className="border-b border-slate-700/50">
-              <CardTitle className="text-xl sm:text-2xl font-bold text-white flex items-center">
-                <Stethoscope className="w-6 h-6 mr-2 text-blue-400" />
-                Professional Information
-              </CardTitle>
-              <CardDescription className="text-slate-400 mt-2 text-sm sm:text-base">
-                Your medical credentials and practice details
-              </CardDescription>
+
+          {/* Reviews Section */}
+          <Card className="mt-8 border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 backdrop-blur-sm shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-foreground dark:text-white flex items-center"><Star className="w-5 h-5 text-amber-500 mr-2"/> Patient Reviews</CardTitle>
+              <CardDescription className="text-muted-foreground">Recent feedback from your patients</CardDescription>
             </CardHeader>
-            <CardContent className="pt-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label htmlFor="specialty" className="text-slate-300">Specialty</Label>
-                  <div className="relative">
-                    <Stethoscope className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    {isEditing ? (
-                      <Select value={formData.specialty} onValueChange={(value) => handleInputChange("specialty", value)}>
-                        <SelectTrigger className="pl-10 bg-slate-700 border-slate-600 text-white">
-                          <SelectValue placeholder={formData.specialty || "Select specialty"} />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-700 border-slate-600 text-white">
-                          <SelectItem value="cardiology">Cardiology</SelectItem>
-                          <SelectItem value="dermatology">Dermatology</SelectItem>
-                          <SelectItem value="neurology">Neurology</SelectItem>
-                          <SelectItem value="orthopedics">Orthopedics</SelectItem>
-                          <SelectItem value="pediatrics">Pediatrics</SelectItem>
-                          <SelectItem value="psychiatry">Psychiatry</SelectItem>
-                          <SelectItem value="general">General Medicine</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <Input value={formData.specialty} disabled className="pl-10 bg-slate-700 border-slate-600 text-white capitalize" />
-                    )}
-                  </div>
+            <CardContent>
+              {reviews.length === 0 ? (
+                <div className="text-muted-foreground">No reviews yet.</div>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.slice(0,5).map((r) => (
+                    <div key={r.id} className="p-3 rounded-lg border border-border bg-muted/30">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium text-foreground">{r.patientName || 'Patient'}</div>
+                        <div className="flex items-center gap-1">
+                          {[1,2,3,4,5].map((n) => (
+                            <Star key={n} className={`w-4 h-4 ${n <= (r.rating||0) ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'}`} />
+                          ))}
+                        </div>
+                      </div>
+                      {r.message && <div className="text-sm text-muted-foreground mt-1">{r.message}</div>}
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <Label htmlFor="experience" className="text-slate-300">Experience</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <Input
-                      id="experience"
-                      type="text"
-                      value={formData.experience}
-                      onChange={(e) => handleInputChange("experience", e.target.value)}
-                      disabled={!isEditing}
-                      className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                      placeholder="e.g., 5 years"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6">
-                <Label htmlFor="qualifications" className="text-slate-300">Qualifications</Label>
-                <div className="relative">
-                  <GraduationCap className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="qualifications"
-                    type="text"
-                    value={formData.qualifications}
-                    onChange={(e) => handleInputChange("qualifications", e.target.value)}
-                    disabled={!isEditing}
-                    className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                    placeholder="e.g., MD, MBBS, Specialist"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="mt-6">
-                <Label htmlFor="clinicAddress" className="text-slate-300">Clinic Address</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                  <Textarea
-                    id="clinicAddress"
-                    value={formData.clinicAddress}
-                    onChange={(e) => handleInputChange("clinicAddress", e.target.value)}
-                    disabled={!isEditing}
-                    className="pl-10 min-h-[80px] bg-slate-700 border-slate-600 text-white placeholder-slate-400"
-                    placeholder="Enter your clinic address"
-                    required
-                  />
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>

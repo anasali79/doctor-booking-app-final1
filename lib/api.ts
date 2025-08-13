@@ -31,6 +31,18 @@ export interface Prescription {
   attachments?: { id: string; name: string; type: "image" | "pdf"; url: string }[]
 }
 
+// New: Review interface for doctor feedback
+export interface Review {
+  id: string
+  doctorId: string
+  patientId: string
+  appointmentId: string
+  rating: number // 1-5
+  message?: string
+  patientName?: string
+  createdAt: string
+}
+
 // Existing interfaces and types
 export interface Doctor {
   id: string
@@ -307,6 +319,109 @@ export const doctorsAPI = {
       throw error
     }
   },
+}
+
+// Reviews API
+export const reviewsAPI = {
+  async create(review: Omit<Review, "id" | "createdAt">): Promise<Review> {
+    try {
+      const payload = { ...review, id: Date.now().toString(), createdAt: new Date().toISOString() }
+      const response = await fetch(`${BASE_URL}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!response.ok) {
+        throw new Error("Failed to create review")
+      }
+      return response.json()
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to server. Please run 'npm run json-server' and ensure /reviews resource exists.")
+      }
+      throw error
+    }
+  },
+  async getByDoctorId(doctorId: string): Promise<Review[]> {
+    try {
+      const response = await fetch(`${BASE_URL}/reviews?doctorId=${doctorId}`)
+      if (!response.ok) throw new Error("Failed to fetch reviews")
+      return response.json()
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        throw new Error("Cannot connect to server. Please run 'npm run json-server' and ensure /reviews resource exists.")
+      }
+      throw error
+    }
+  },
+  async getByAppointmentId(appointmentId: string): Promise<Review[]> {
+    const response = await fetch(`${BASE_URL}/reviews?appointmentId=${appointmentId}`)
+    if (!response.ok) throw new Error("Failed to fetch review for appointment")
+    return response.json()
+  },
+  async update(id: string, data: Partial<Review>): Promise<Review> {
+    const response = await fetch(`${BASE_URL}/reviews/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    })
+    if (!response.ok) throw new Error("Failed to update review")
+    return response.json()
+  },
+  async delete(id: string): Promise<void> {
+    const response = await fetch(`${BASE_URL}/reviews/${id}`, { method: "DELETE" })
+    if (!response.ok) throw new Error("Failed to delete review")
+  },
+  async searchByDoctor({
+    doctorId,
+    page = 1,
+    limit = 12,
+    minStars,
+    query,
+    sortBy = "newest",
+  }: {
+    doctorId: string
+    page?: number
+    limit?: number
+    minStars?: number
+    query?: string
+    sortBy?: "newest" | "oldest" | "highest" | "lowest"
+  }): Promise<{ items: Review[]; total: number }> {
+    const sortMap: Record<string, { sort: string; order: "asc" | "desc" }> = {
+      newest: { sort: "createdAt", order: "desc" },
+      oldest: { sort: "createdAt", order: "asc" },
+      highest: { sort: "rating", order: "desc" },
+      lowest: { sort: "rating", order: "asc" },
+    }
+    const { sort, order } = sortMap[sortBy]
+    const params = new URLSearchParams()
+    params.set("doctorId", doctorId)
+    params.set("_page", String(page))
+    params.set("_limit", String(limit))
+    params.set("_sort", sort)
+    params.set("_order", order)
+    if (minStars && minStars > 0) params.set("rating_gte", String(minStars))
+    if (query && query.trim()) params.set("q", query.trim())
+    const url = `${BASE_URL}/reviews?${params.toString()}`
+    const response = await fetch(url)
+    if (!response.ok) throw new Error("Failed to fetch reviews")
+    const items: Review[] = await response.json()
+    const totalHeader = response.headers.get("X-Total-Count")
+    const total = totalHeader ? Number(totalHeader) : items.length
+    return { items, total }
+  },
+}
+
+// Utility: recalculate and update doctor's average rating from reviews
+export async function updateDoctorAggregateRating(doctorId: string) {
+  try {
+    const reviews = await reviewsAPI.getByDoctorId(doctorId)
+    const reviewCount = reviews.length
+    const rating = reviewCount > 0 ? Number((reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviewCount).toFixed(2)) : 0
+    await doctorsAPI.update(doctorId, { rating, reviewCount })
+  } catch (e) {
+    console.error("Failed to update doctor aggregate rating:", e)
+  }
 }
 
 // Patients API (Enhanced with comprehensive profile support)

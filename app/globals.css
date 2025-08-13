@@ -69,7 +69,7 @@
   }
 
   ::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: hsl(var(--muted));
   }
 
   ::-webkit-scrollbar-thumb {
@@ -79,6 +79,10 @@
 
   ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(135deg, #2563eb, #7c3aed);
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
   }
 }
 

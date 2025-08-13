@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
-import { Navbar } from "@/components/Navbar"
+import { DoctorNavbar } from "@/components/DoctorNavbar"
 import { isValid } from "date-fns";
 import {
   appointmentsAPI,
@@ -249,20 +249,21 @@ export default function PatientMedicalHistoryPage() {
 
   return (
     <ProtectedRoute allowedRoles={["doctor"]}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <DoctorNavbar />
+        <div className="h-20 sm:h-24" aria-hidden="true" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print:px-0">
           <div className="flex items-center gap-3 mb-6 no-print">
-            <Button variant="outline" className="border-slate-600 text-slate-300 bg-transparent" onClick={() => router.back()}>
+            <Button variant="outline" className="border-border dark:border-slate-600 text-foreground dark:text-slate-300 bg-transparent" onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" /> Back
             </Button>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-foreground via-muted-foreground to-muted-foreground dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
               Medical History
             </h1>
           </div>
 
           {/* Patient Header */}
-          <Card className="mb-6 border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm">
+          <Card className="mb-6 border border-border/50 dark:border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -270,13 +271,13 @@ export default function PatientMedicalHistoryPage() {
                     <UserCircle2 className="w-7 h-7 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-white">{patient?.name ?? "Patient"}</CardTitle>
-                    <CardDescription className="text-slate-400">{patient?.email} • {patient?.phone}</CardDescription>
+                    <CardTitle className="text-foreground dark:text-white">{patient?.name ?? "Patient"}</CardTitle>
+                    <CardDescription className="text-muted-foreground dark:text-slate-400">{patient?.email} • {patient?.phone}</CardDescription>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Link href={`/doctor/patients`}>
-                    <Button variant="outline" className="border-slate-600 text-slate-300 bg-transparent no-print">Patients</Button>
+                    <Button variant="outline" className="border-border dark:border-slate-600 text-foreground dark:text-slate-300 bg-transparent no-print">Patients</Button>
                   </Link>
                   <Button 
                     className="bg-teal-600 hover:bg-teal-700 no-print"
@@ -285,10 +286,10 @@ export default function PatientMedicalHistoryPage() {
                     <User className="w-4 h-4 mr-2" /> View Profile
                   </Button>
                   <div className="flex gap-2">
-                    <Button onClick={handleDownloadPdf} variant="outline" className="border-slate-600 text-slate-300 bg-transparent no-print">
+                    <Button onClick={handleDownloadPdf} variant="outline" className="border-border dark:border-slate-600 text-foreground dark:text-slate-300 bg-transparent no-print">
                       <Download className="w-4 h-4 mr-2" /> PDF
                     </Button>
-                    <Button onClick={exportCsv} variant="outline" className="border-slate-600 text-slate-300 bg-transparent no-print">
+                    <Button onClick={exportCsv} variant="outline" className="border-border dark:border-slate-600 text-foreground dark:text-slate-300 bg-transparent no-print">
                       CSV
                     </Button>
                   </div>
@@ -299,24 +300,24 @@ export default function PatientMedicalHistoryPage() {
 
           {/* Filters, search, stats, view toggle */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 no-print">
-            <Card className="border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80">
+            <Card className="border border-border/50 dark:border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80">
               <CardHeader>
-                <CardTitle className="text-white text-lg flex items-center"><Filter className="w-4 h-4 mr-2" /> Filters</CardTitle>
+                <CardTitle className="text-foreground dark:text-white text-lg flex items-center"><Filter className="w-4 h-4 mr-2" /> Filters</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="from" className="text-slate-300">From</Label>
-                  <Input id="from" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-slate-800/50 border-slate-600/50 text-white" />
+                  <Label htmlFor="from" className="text-foreground dark:text-slate-300">From</Label>
+                  <Input id="from" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="bg-muted/50 dark:bg-slate-800/50 border-border dark:border-slate-600/50 text-foreground dark:text-white" />
                 </div>
                 <div>
-                  <Label htmlFor="to" className="text-slate-300">To</Label>
-                  <Input id="to" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-slate-800/50 border-slate-600/50 text-white" />
+                  <Label htmlFor="to" className="text-foreground dark:text-slate-300">To</Label>
+                  <Input id="to" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="bg-muted/50 dark:bg-slate-800/50 border-border dark:border-slate-600/50 text-foreground dark:text-white" />
                 </div>
                 <div>
-                  <Label className="text-slate-300">Type</Label>
+                  <Label className="text-foreground dark:text-slate-300">Type</Label>
                   <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="bg-slate-800/50 border-slate-600/50 text-white"><SelectValue placeholder="All" /></SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600 text-white">
+                    <SelectTrigger className="bg-muted/50 dark:bg-slate-800/50 border-border dark:border-slate-600/50 text-foreground dark:text-white"><SelectValue placeholder="All" /></SelectTrigger>
+                    <SelectContent className="bg-muted dark:bg-slate-800 border-border dark:border-slate-600 text-foreground dark:text-white">
                       <SelectItem value="all">All</SelectItem>
                       <SelectItem value="clinic">Clinic</SelectItem>
                       <SelectItem value="video">Video</SelectItem>
@@ -325,18 +326,18 @@ export default function PatientMedicalHistoryPage() {
                   </Select>
                 </div>
                 <div className="sm:col-span-3">
-                  <Label className="text-slate-300">Pick date range</Label>
+                  <Label className="text-foreground dark:text-slate-300">Pick date range</Label>
                   <div className="flex items-center gap-2">
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="border-slate-600 text-slate-300 bg-transparent">
+                        <Button variant="outline" className="border-border dark:border-slate-600 text-foreground dark:text-slate-300 bg-transparent">
                           <CalendarIcon className="w-4 h-4 mr-2" />
                           {dateRange?.from && dateRange?.to
                             ? `${format(dateRange.from, "dd MMM yyyy")} - ${format(dateRange.to, "dd MMM yyyy")}`
                             : "Select range"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="p-0 bg-slate-900 border border-slate-700" align="start">
+                      <PopoverContent className="p-0 bg-background dark:bg-slate-900 border border-border dark:border-slate-700" align="start">
                         <Calendar
                           mode="range"
                           selected={dateRange}
@@ -351,7 +352,7 @@ export default function PatientMedicalHistoryPage() {
                     </Popover>
                     <Button
                       variant="outline"
-                      className="border-slate-600 text-slate-300 bg-transparent"
+                      className="border-border dark:border-slate-600 text-foreground dark:text-slate-300 bg-transparent"
                       onClick={() => { setFromDate(""); setToDate(""); setDateRange(undefined) }}
                     >
                       Clear
@@ -359,44 +360,44 @@ export default function PatientMedicalHistoryPage() {
                   </div>
                 </div>
                 <div className="sm:col-span-3">
-                  <Label className="text-slate-300">Search by doctor or diagnosis</Label>
+                  <Label className="text-foreground dark:text-slate-300">Search by doctor or diagnosis</Label>
                   <div className="relative">
-                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground dark:text-slate-400 w-4 h-4" />
                     <Input
                       value={searchText}
                       onChange={(e) => setSearchText(e.target.value)}
                       placeholder="Dr. Sarah or Back Pain..."
-                      className="pl-9 bg-slate-800/50 border-slate-600/50 text-white"
+                      className="pl-9 bg-muted/50 dark:bg-slate-800/50 border-border dark:border-slate-600/50 text-foreground dark:text-white"
                     />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80">
+            <Card className="border border-border/50 dark:border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80">
               <CardHeader>
-                <CardTitle className="text-white text-lg">Quick Stats</CardTitle>
+                <CardTitle className="text-foreground dark:text-white text-lg">Quick Stats</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-4">
                 <div 
-                  className="group p-4 rounded-xl bg-white/5 border border-white/10 cursor-pointer transition-all duration-200 hover:bg-teal-500/15 hover:border-teal-400/30 hover:ring-1 hover:ring-teal-400/20 hover:-translate-y-0.5"
+                  className="group p-4 rounded-xl bg-muted/30 dark:bg-white/5 border border-border/30 dark:border-white/10 cursor-pointer transition-all duration-200 hover:bg-teal-500/15 hover:border-teal-400/30 hover:ring-1 hover:ring-teal-400/20 hover:-translate-y-0.5"
                   onClick={() => scrollToSection('appointments-section')}
                 >
-                  <div className="text-slate-400 text-sm flex items-center gap-2">
+                  <div className="text-muted-foreground dark:text-slate-400 text-sm flex items-center gap-2">
                     <CalendarIcon className="w-4 h-4 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-teal-300" />
                     <span className="transition-colors duration-200 group-hover:text-teal-200">Appointments</span>
                   </div>
-                  <div className="text-2xl font-semibold text-white transition-colors duration-200 group-hover:text-teal-200">{totals.appointments}</div>
+                  <div className="text-2xl font-semibold text-foreground dark:text-white transition-colors duration-200 group-hover:text-teal-200">{totals.appointments}</div>
                 </div>
                 <div 
-                  className="group p-4 rounded-xl bg-white/5 border border-white/10 cursor-pointer transition-all duration-200 hover:bg-emerald-500/15 hover:border-emerald-400/30 hover:ring-1 hover:ring-emerald-400/20 hover:-translate-y-0.5"
+                  className="group p-4 rounded-xl bg-muted/30 dark:bg-white/5 border border-border/30 dark:border-white/10 cursor-pointer transition-all duration-200 hover:bg-emerald-500/15 hover:border-emerald-400/30 hover:ring-1 hover:ring-emerald-400/20 hover:-translate-y-0.5"
                   onClick={() => scrollToSection('prescriptions-section')}
                 >
-                  <div className="text-slate-400 text-sm flex items-center gap-2">
+                  <div className="text-muted-foreground dark:text-slate-400 text-sm flex items-center gap-2">
                     <Pill className="w-4 h-4 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-emerald-300" />
                     <span className="transition-colors duration-200 group-hover:text-emerald-200">Prescriptions</span>
                   </div>
-                  <div className="text-2xl font-semibold text-white transition-colors duration-200 group-hover:text-emerald-200">{totals.prescriptions}</div>
+                  <div className="text-2xl font-semibold text-foreground dark:text-white transition-colors duration-200 group-hover:text-emerald-200">{totals.prescriptions}</div>
                 </div>
               </CardContent>
             </Card>
@@ -424,27 +425,27 @@ export default function PatientMedicalHistoryPage() {
             <div id="appointments-section">
               <div className="flex items-center gap-2 mb-4">
                 <CalendarIcon className="w-5 h-5 text-teal-400" />
-                <h2 className="text-xl font-semibold text-white">Appointments</h2>
+                <h2 className="text-xl font-semibold text-foreground dark:text-white">Appointments</h2>
               </div>
               <div className={viewMode === "timeline" ? "relative pl-6 space-y-6" : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"}>
                 {isLoading ? (
                   Array.from({ length: 6 }).map((_, i) => (
-                    <Card key={i} className="animate-pulse bg-slate-800/50">
+                    <Card key={i} className="animate-pulse bg-muted/50 dark:bg-slate-800/50">
                       <CardHeader>
-                        <div className="h-6 bg-slate-700 rounded w-3/4" />
-                        <div className="h-4 bg-slate-700 rounded w-1/2" />
+                        <div className="h-6 bg-muted dark:bg-slate-700 rounded w-3/4" />
+                        <div className="h-4 bg-muted dark:bg-slate-700 rounded w-1/2" />
                       </CardHeader>
                       <CardContent>
-                        <div className="h-20 bg-slate-700 rounded" />
+                        <div className="h-20 bg-muted dark:bg-slate-700 rounded" />
                       </CardContent>
                     </Card>
                   ))
                 ) : filteredAppointments.length === 0 ? (
-                  <Card className="border border-slate-200 bg-white">
+                  <Card className="border border-border dark:border-slate-200 bg-card dark:bg-white">
                     <CardContent className="p-6 text-center">
-                      <CalendarIcon className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-                      <div className="text-black font-medium">No appointments found</div>
-                      <div className="text-black/70 text-sm">No appointments match your current filters.</div>
+                      <CalendarIcon className="w-12 h-12 text-muted-foreground dark:text-slate-500 mx-auto mb-3" />
+                      <div className="text-foreground dark:text-black font-medium">No appointments found</div>
+                      <div className="text-muted-foreground dark:text-black/70 text-sm">No appointments match your current filters.</div>
                     </CardContent>
                   </Card>
                 ) : (
@@ -461,33 +462,33 @@ export default function PatientMedicalHistoryPage() {
                       {viewMode === "timeline" && (
                         <>
                           <span className="absolute left-[-1.25rem] top-4 w-2 h-2 rounded-full bg-cyan-400" />
-                          <span className="absolute left-[-1.02rem] top-4 -z-10 h-full w-0.5 bg-slate-700" />
+                          <span className="absolute left-[-1.02rem] top-4 -z-10 h-full w-0.5 bg-muted dark:bg-slate-700" />
                         </>
                       )}
-                      <Card className={`border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 ${hasPrescription ? 'ring-1 ring-teal-500/20' : ''}`}>
+                      <Card className={`border border-border/50 dark:border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 ${hasPrescription ? 'ring-1 ring-teal-500/20' : ''}`}>
                       <CardHeader>
-                        <CardTitle className="text-white flex items-center justify-between">
+                        <CardTitle className="text-foreground dark:text-white flex items-center justify-between">
                           <span>{format(parseISO(apt.date), "dd MMM yyyy")} • {apt.time}</span>
                           <div className="flex items-center gap-2">
                             <Badge className={`${getStatusBadge(apt.status)} capitalize`}>{apt.status}</Badge>
-                            <Badge className="bg-white/10 text-slate-100 border-white/20 capitalize flex items-center gap-1">
+                            <Badge className="bg-muted/20 dark:bg-white/10 text-foreground dark:text-slate-100 border-border/30 dark:border-white/20 capitalize flex items-center gap-1">
                               <TypeIcon type={apt.consultationType} /> {apt.consultationType}
                             </Badge>
                           </div>
                         </CardTitle>
-                        <CardDescription className="text-slate-400">
+                        <CardDescription className="text-muted-foreground dark:text-slate-400">
                           {apt.doctorName} • {apt.specialty}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="text-slate-300 space-y-3">
+                      <CardContent className="text-foreground dark:text-slate-300 space-y-3">
                         <div className="flex items-center gap-2">
                           <Stethoscope className="w-4 h-4 text-cyan-400" />
                           <span>Status: {apt.status}</span>
                         </div>
                         
                         {/* Diagnosis Section */}
-                        <div className={`rounded-lg p-3 ${hasDiagnosis ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-slate-500/10 border border-slate-500/20'}`}>
-                          <div className="text-slate-400 text-sm mb-2 flex items-center gap-2">
+                        <div className={`rounded-lg p-3 ${hasDiagnosis ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-muted/20 dark:bg-slate-500/10 border border-border/30 dark:border-slate-500/20'}`}>
+                          <div className="text-muted-foreground dark:text-slate-400 text-sm mb-2 flex items-center gap-2">
                             <Activity className="w-4 h-4" />
                             Diagnosis & Symptoms
                           </div>
@@ -498,13 +499,13 @@ export default function PatientMedicalHistoryPage() {
                               ))}
                             </div>
                           ) : (
-                            <div className="text-slate-400 text-sm italic">No diagnosis recorded</div>
+                            <div className="text-muted-foreground dark:text-slate-400 text-sm italic">No diagnosis recorded</div>
                           )}
                         </div>
 
                         {/* Prescription Section */}
-                        <div className={`rounded-lg p-3 ${hasPrescription ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-slate-500/10 border border-slate-500/20'}`}>
-                          <div className="text-slate-400 text-sm mb-2 flex items-center gap-2">
+                        <div className={`rounded-lg p-3 ${hasPrescription ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-muted/20 dark:bg-slate-500/10 border border-border/30 dark:border-slate-500/20'}`}>
+                          <div className="text-muted-foreground dark:text-slate-400 text-sm mb-2 flex items-center gap-2">
                             <Pill className="w-4 h-4" />
                             Prescription Details
                           </div>
@@ -512,7 +513,7 @@ export default function PatientMedicalHistoryPage() {
                             <div className="space-y-2">
                               {/* Medicines */}
                               <div>
-                                <div className="text-slate-300 text-sm font-medium mb-1">Medicines:</div>
+                                <div className="text-foreground dark:text-slate-300 text-sm font-medium mb-1">Medicines:</div>
                                 {hasMedicines ? (
                                   <div className="flex flex-wrap gap-1">
                                     {pre.medicines!.map((med, idx) => (
@@ -522,15 +523,15 @@ export default function PatientMedicalHistoryPage() {
                                     ))}
                                   </div>
                                 ) : (
-                                  <div className="text-slate-400 text-sm italic">No medicines prescribed</div>
+                                  <div className="text-muted-foreground dark:text-slate-400 text-sm italic">No medicines prescribed</div>
                                 )}
                               </div>
 
                               {/* Follow-up */}
                               {pre.followUpDate && (
                                 <div>
-                                  <div className="text-slate-300 text-sm font-medium mb-1">Follow-up:</div>
-                                  <div className="text-slate-300 text-sm">
+                                  <div className="text-foreground dark:text-slate-300 text-sm font-medium mb-1">Follow-up:</div>
+                                  <div className="text-foreground dark:text-slate-300 text-sm">
                                     {(() => {
                                       try {
                                         const d = parseISO(pre.followUpDate)
@@ -546,10 +547,10 @@ export default function PatientMedicalHistoryPage() {
                               {/* Attachments */}
                               {hasAttachments && (
                                 <div>
-                                  <div className="text-slate-300 text-sm font-medium mb-1">Attachments:</div>
+                                  <div className="text-foreground dark:text-slate-300 text-sm font-medium mb-1">Attachments:</div>
                                   <div className="flex flex-wrap gap-2">
                                     {pre.attachments!.map(att => (
-                                      <a key={att.id} href={att.url} target="_blank" rel="noreferrer" className="text-xs px-2 py-1 rounded border border-white/20 text-slate-200 hover:bg-white/10">
+                                      <a key={att.id} href={att.url} target="_blank" rel="noreferrer" className="text-xs px-2 py-1 rounded border border-border/30 dark:border-white/20 text-foreground dark:text-slate-200 hover:bg-muted/20 dark:hover:bg-white/10">
                                         {att.type === "pdf" ? "📄 PDF" : "🖼️ Image"}: {att.name}
                                       </a>
                                     ))}
@@ -559,7 +560,7 @@ export default function PatientMedicalHistoryPage() {
 
                               {/* Upload and View Buttons */}
                               <div className="flex items-center gap-2 pt-2">
-                                <label className="inline-flex items-center gap-2 text-xs cursor-pointer text-slate-300 hover:text-slate-200">
+                                <label className="inline-flex items-center gap-2 text-xs cursor-pointer text-muted-foreground dark:text-slate-300 hover:text-foreground dark:hover:text-slate-200">
                                   <UploadCloud className="w-4 h-4" />
                                   <span>{isUploading ? "Uploading..." : "Attach report"}</span>
                                   <input type="file" className="hidden" multiple accept="image/*,application/pdf" onChange={(e) => handleAttachmentUpload(pre, e.target.files)} />
@@ -575,7 +576,7 @@ export default function PatientMedicalHistoryPage() {
                               </div>
                             </div>
                           ) : (
-                            <div className="text-slate-400 text-sm italic">No prescription recorded for this appointment</div>
+                            <div className="text-muted-foreground dark:text-slate-400 text-sm italic">No prescription recorded for this appointment</div>
                           )}
                         </div>
                       </CardContent>
@@ -591,18 +592,18 @@ export default function PatientMedicalHistoryPage() {
             <div id="prescriptions-section">
               <div className="flex items-center gap-2 mb-4">
                 <Pill className="w-5 h-5 text-emerald-400" />
-                <h2 className="text-xl font-semibold text-white">Prescriptions</h2>
+                <h2 className="text-xl font-semibold text-foreground dark:text-white">Prescriptions</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {isLoading ? (
                   Array.from({ length: 6 }).map((_, i) => (
-                    <Card key={i} className="animate-pulse bg-slate-800/50">
+                    <Card key={i} className="animate-pulse bg-muted/50 dark:bg-slate-800/50">
                       <CardHeader>
-                        <div className="h-6 bg-slate-700 rounded w-3/4" />
-                        <div className="h-4 bg-slate-700 rounded w-1/2" />
+                        <div className="h-6 bg-muted dark:bg-slate-700 rounded w-3/4" />
+                        <div className="h-4 bg-muted dark:bg-slate-700 rounded w-1/2" />
                       </CardHeader>
                       <CardContent>
-                        <div className="h-20 bg-slate-700 rounded" />
+                        <div className="h-20 bg-muted dark:bg-slate-700 rounded" />
                       </CardContent>
                     </Card>
                   ))

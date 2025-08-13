@@ -46,11 +46,11 @@ export function ModernFooter() {
   }
 
   return (
-    <footer className="relative bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white overflow-hidden">
+    <footer className="relative overflow-hidden bg-white text-foreground dark:bg-gradient-to-br dark:from-gray-900 dark:via-slate-900 dark:to-gray-900 dark:text-white">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-pink-500/10 to-orange-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full blur-3xl bg-[radial-gradient(closest-side,rgba(0,0,0,0.04),transparent)] dark:bg-gradient-to-br dark:from-blue-500/10 dark:to-purple-500/10"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full blur-3xl bg-[radial-gradient(closest-side,rgba(0,0,0,0.04),transparent)] dark:bg-gradient-to-br dark:from-pink-500/10 dark:to-orange-500/10"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-12 relative z-10">
@@ -75,11 +75,11 @@ export function ModernFooter() {
               >
                 <Heart className="w-6 h-6 text-white" />
               </motion.div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-purple-400 dark:to-pink-400">
                 MediCare
               </span>
             </motion.div>
-            <p className="text-gray-400 leading-relaxed text-sm">
+            <p className="text-muted-foreground dark:text-gray-400 leading-relaxed text-sm">
               Your trusted healthcare companion. Connect with qualified doctors and take control of your health.
             </p>
             <div className="flex space-x-3">
@@ -112,7 +112,7 @@ export function ModernFooter() {
 
           {/* Quick Links */}
           <motion.div className="space-y-4" variants={itemVariants}>
-            <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">
               Quick Links
             </h3>
             <div className="space-y-2">
@@ -132,7 +132,7 @@ export function ModernFooter() {
                 >
                   <Link
                     href={link.href}
-                    className="block text-gray-400 hover:text-white hover:bg-white/5 px-2 py-1 rounded-lg transition-all duration-200 text-sm"
+                    className="block text-muted-foreground hover:text-foreground hover:bg-muted/50 px-2 py-1 rounded-lg transition-all duration-200 text-sm dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5"
                   >
                     {link.label}
                   </Link>
@@ -143,7 +143,7 @@ export function ModernFooter() {
 
           {/* For Patients */}
           <motion.div className="space-y-4" variants={itemVariants}>
-            <h3 className="text-lg font-semibold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
+            <h3 className="text-lg font-semibold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent dark:from-green-400 dark:to-blue-400">
               For Patients
             </h3>
             <div className="space-y-2">
@@ -163,7 +163,7 @@ export function ModernFooter() {
                 >
                   <Link
                     href={link.href}
-                    className="block text-gray-400 hover:text-white hover:bg-white/5 px-2 py-1 rounded-lg transition-all duration-200 text-sm"
+                    className="block text-muted-foreground hover:text-foreground hover:bg-muted/50 px-2 py-1 rounded-lg transition-all duration-200 text-sm dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5"
                   >
                     {link.label}
                   </Link>
@@ -174,7 +174,7 @@ export function ModernFooter() {
 
           {/* For Doctors */}
           <motion.div className="space-y-4" variants={itemVariants}>
-            <h3 className="text-lg font-semibold bg-gradient-to-r from-pink-400 to-orange-400 bg-clip-text text-transparent">
+            <h3 className="text-lg font-semibold bg-gradient-to-r from-pink-600 to-orange-600 bg-clip-text text-transparent dark:from-pink-400 dark:to-orange-400">
               For Doctors
             </h3>
             <div className="space-y-2">
@@ -194,7 +194,7 @@ export function ModernFooter() {
                 >
                   <Link
                     href={link.href}
-                    className="block text-gray-400 hover:text-white hover:bg-white/5 px-2 py-1 rounded-lg transition-all duration-200 text-sm"
+                    className="block text-muted-foreground hover:text-foreground hover:bg-muted/50 px-2 py-1 rounded-lg transition-all duration-200 text-sm dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5"
                   >
                     {link.label}
                   </Link>

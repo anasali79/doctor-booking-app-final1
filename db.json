@@ -4,7 +4,7 @@
       "id": "1",
       "name": "Dr. Sarah Johnson",
       "email": "sarah@example.com",
-      "password": "password123",
+      "password": "26272627",
       "phone": "+1-555-0101",
       "specialty": "Cardiology",
       "qualifications": "MD, FACC",
@@ -46,7 +46,7 @@
       "id": "2",
       "name": "Dr. Michael Chen",
       "email": "michael@example.com",
-      "password": "password123",
+      "password": "26272627",
       "phone": "+1-555-0102",
       "specialty": "Dermatology",
       "qualifications": "MD, FAAD",
@@ -88,7 +88,7 @@
       "id": "3",
       "name": "Dr. Emily Rodriguez",
       "email": "emily.rodriguez@example.com",
-      "password": "password123",
+      "password": "26272627",
       "phone": "+1-555-0103",
       "specialty": "Neurology",
       "qualifications": "MD, PhD",
@@ -128,7 +128,7 @@
       "id": "4",
       "name": "Dr. Aisha Khan",
       "email": "aisha.khan@example.com",
-      "password": "password123",
+      "password": "26272627",
       "phone": "+1-555-0104",
       "specialty": "Pediatrics",
       "qualifications": "MBBS, DCH",
@@ -169,7 +169,7 @@
       "id": "5",
       "name": "Dr. Rajesh Patel",
       "email": "rajesh.patel@example.com",
-      "password": "password123",
+      "password": "26272627",
       "phone": "+1-555-0105",
       "specialty": "Orthopedics",
       "qualifications": "MBBS, MS Ortho",
@@ -209,7 +209,7 @@
       "id": "6",
       "name": "Dr. Neha Mehta",
       "email": "neha.mehta@example.com",
-      "password": "password123",
+      "password": "26272627",
       "phone": "+1-555-0106",
       "specialty": "Gynecology",
       "qualifications": "MBBS, MD (Gynae)",
@@ -252,7 +252,7 @@
       "id": "1",
       "name": "John Doe",
       "email": "john@example.com",
-      "password": "password123",
+      "password": "11221122",
       "phone": "+1-555-1001"
     }
   ],
@@ -356,6 +356,7 @@
       "fee": 80
     }
   ],
-  "prescriptions": []
+  "prescriptions": [],
+  "reviews": []
   }
   

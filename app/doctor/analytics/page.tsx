@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
-import { Navbar } from "@/components/Navbar"
+import { DoctorNavbar } from "@/components/DoctorNavbar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -127,12 +127,12 @@ export default function AnalyticsPage() {
   }
 
   const StatCard = ({ title, value, change, icon: Icon, color, prefix = "", suffix = "" }) => (
-    <Card className="relative overflow-hidden group hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 border-0 bg-gradient-to-br from-slate-900/50 to-slate-800/50 backdrop-blur-sm">
+    <Card className="relative overflow-hidden group hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/50 dark:to-slate-800/50 backdrop-blur-sm">
       <div
         className={`absolute inset-0 bg-gradient-to-r ${color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}
       />
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xs sm:text-sm font-medium text-slate-200">{title}</CardTitle>
+        <CardTitle className="text-xs sm:text-sm font-medium text-foreground dark:text-slate-200">{title}</CardTitle>
         <div
           className={`p-2 rounded-lg bg-gradient-to-r ${color} shadow-lg group-hover:scale-110 transition-transform duration-300`}
         >
@@ -140,9 +140,9 @@ export default function AnalyticsPage() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1 transition-all duration-300 group-hover:scale-110">
+        <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground dark:text-white mb-1 transition-all duration-300 group-hover:scale-110">
           {isLoading ? (
-            <div className="h-6 sm:h-8 w-12 sm:w-16 bg-slate-700 rounded animate-pulse" />
+            <div className="h-6 sm:h-8 w-12 sm:w-16 bg-muted dark:bg-slate-700 rounded animate-pulse" />
           ) : (
             `${prefix}${value}${suffix}`
           )}
@@ -153,10 +153,10 @@ export default function AnalyticsPage() {
   )
 
   const ChartCard = ({ title, description, children }) => (
-    <Card className="border-0 bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-sm">
+    <Card className="border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 backdrop-blur-sm">
       <CardHeader>
-        <CardTitle className="text-lg sm:text-xl text-white">{title}</CardTitle>
-        <CardDescription className="text-slate-400 text-sm">{description}</CardDescription>
+        <CardTitle className="text-lg sm:text-xl text-foreground dark:text-white">{title}</CardTitle>
+        <CardDescription className="text-muted-foreground dark:text-slate-400 text-sm">{description}</CardDescription>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
@@ -166,8 +166,8 @@ export default function AnalyticsPage() {
     <div className="space-y-3">
       {data.map((item, index) => (
         <div key={index} className="flex items-center space-x-3">
-          <span className="text-slate-300 text-sm w-8">{item.month}</span>
-          <div className="flex-1 bg-slate-800 rounded-full h-2 relative overflow-hidden">
+          <span className="text-muted-foreground dark:text-slate-300 text-sm w-8">{item.month}</span>
+          <div className="flex-1 bg-muted dark:bg-slate-800 rounded-full h-2 relative overflow-hidden">
             <div
               className={`h-full bg-gradient-to-r from-${color}-500 to-${color}-600 rounded-full transition-all duration-1000 ease-out`}
               style={{
@@ -176,7 +176,7 @@ export default function AnalyticsPage() {
               }}
             />
           </div>
-          <span className="text-slate-300 text-sm w-8 text-right">{item[dataKey]}</span>
+          <span className="text-muted-foreground dark:text-slate-300 text-sm w-8 text-right">{item[dataKey]}</span>
         </div>
       ))}
     </div>
@@ -190,7 +190,7 @@ export default function AnalyticsPage() {
       <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
         <div className="relative w-32 h-32 sm:w-40 sm:h-40">
           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="rgb(51 65 85)" strokeWidth="8" />
+            <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(var(--muted))" strokeWidth="8" />
             {Object.entries(data).map(([key, value], index) => {
               if (value === 0) return null
               const percentage = (value / total) * 100
@@ -216,14 +216,14 @@ export default function AnalyticsPage() {
             })}
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-white font-bold text-lg sm:text-xl">{total}</span>
+            <span className="text-foreground dark:text-white font-bold text-lg sm:text-xl">{total}</span>
           </div>
         </div>
         <div className="space-y-2">
           {Object.entries(data).map(([key, value], index) => (
             <div key={key} className="flex items-center space-x-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[index] }} />
-              <span className="text-slate-300 text-sm capitalize">
+              <span className="text-muted-foreground dark:text-slate-300 text-sm capitalize">
                 {key}: {value}
               </span>
             </div>
@@ -235,8 +235,8 @@ export default function AnalyticsPage() {
 
   return (
     <ProtectedRoute allowedRoles={["doctor"]}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <Navbar />
+      <div className="min-h-screen pt-24 bg-gradient-to-br from-background via-muted/20 to-background dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <DoctorNavbar />
         <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 space-y-4 sm:space-y-0">
@@ -245,23 +245,23 @@ export default function AnalyticsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => router.back()}
-                className="mr-3 sm:mr-4 border-slate-600 text-slate-300 hover:bg-slate-700/50 bg-transparent"
+                className="mr-3 sm:mr-4 border-border dark:border-slate-600 text-foreground dark:text-slate-300 hover:bg-muted dark:hover:bg-slate-700/50 bg-transparent"
               >
                 <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Back</span>
               </Button>
               <div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-foreground via-muted-foreground to-muted-foreground bg-clip-text text-transparent">
                   Analytics Dashboard
                 </h1>
-                <p className="text-slate-400 text-sm sm:text-lg mt-1 sm:mt-2">Track your practice performance</p>
+                <p className="text-muted-foreground dark:text-slate-400 text-sm sm:text-lg mt-1 sm:mt-2">Track your practice performance</p>
               </div>
             </div>
             <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-full sm:w-48 bg-slate-800/50 border-slate-600/50 text-white">
+              <SelectTrigger className="w-full sm:w-48 bg-muted/50 dark:bg-slate-800/50 border-border dark:border-slate-600/50 text-foreground dark:text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
+              <SelectContent className="bg-muted dark:bg-slate-800 border-border dark:border-slate-600">
                 <SelectItem value="7">Last 7 days</SelectItem>
                 <SelectItem value="30">Last 30 days</SelectItem>
                 <SelectItem value="90">Last 3 months</SelectItem>
@@ -331,33 +331,33 @@ export default function AnalyticsPage() {
 
             <ChartCard title="Quick Stats" description="Key performance indicators">
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-muted/30 dark:bg-slate-800/30 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <Clock className="w-4 h-4 text-teal-400" />
-                    <span className="text-slate-300 text-sm">Avg Session</span>
+                    <span className="text-muted-foreground dark:text-slate-300 text-sm">Avg Session</span>
                   </div>
-                  <span className="text-white font-semibold">{analytics.avgSessionTime} min</span>
+                  <span className="text-foreground dark:text-white font-semibold">{analytics.avgSessionTime} min</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-muted/30 dark:bg-slate-800/30 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <Activity className="w-4 h-4 text-green-400" />
-                    <span className="text-slate-300 text-sm">Completed</span>
+                    <span className="text-muted-foreground dark:text-slate-300 text-sm">Completed</span>
                   </div>
-                  <span className="text-white font-semibold">{analytics.completedAppointments}</span>
+                  <span className="text-foreground dark:text-white font-semibold">{analytics.completedAppointments}</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-muted/30 dark:bg-slate-800/30 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <Users className="w-4 h-4 text-blue-400" />
-                    <span className="text-slate-300 text-sm">New Patients</span>
+                    <span className="text-muted-foreground dark:text-slate-300 text-sm">New Patients</span>
                   </div>
-                  <span className="text-white font-semibold">{Math.floor(analytics.totalPatients * 0.3)}</span>
+                  <span className="text-foreground dark:text-white font-semibold">{Math.floor(analytics.totalPatients * 0.3)}</span>
                 </div>
-                <div className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-muted/30 dark:bg-slate-800/30 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <TrendingUp className="w-4 h-4 text-purple-400" />
-                    <span className="text-slate-300 text-sm">Growth Rate</span>
+                    <span className="text-muted-foreground dark:text-slate-300 text-sm">Growth Rate</span>
                   </div>
-                  <span className="text-white font-semibold">+12%</span>
+                  <span className="text-foreground dark:text-white font-semibold">+12%</span>
                 </div>
               </div>
             </ChartCard>
