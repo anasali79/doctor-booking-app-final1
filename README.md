@@ -1,207 +1,171 @@
-# DocBook - Doctor Appointment Booking App
+DocBook - Doctor Appointment Booking App
 
-A full-stack web application for booking doctor appointments with role-based authentication for doctors and patients.
+A **full-stack, role-based** web application for booking doctor appointments.  
+Supports **patients** searching & booking doctors and **doctors** managing appointments, profiles, and prescriptions — with data stored on a hosted **JSON Server API**.
 
-## Features
+## 🌐 Live Links
+
+- **Web App**: [https://doctor-booking-app-final1.vercel.app/auth](https://doctor-booking-app-final1.vercel.app/auth)  
+- **API (Render)**: [https://server-side-api-pelg.onrender.com](https://server-side-api-pelg.onrender.com)  
+
+The API stores:
+- Doctors  
+- Patients (Users)  
+- Appointments  
+- Prescriptions  
+- Reviews  
+
+---
+
+## ✨ Features
 
 ### For Patients
-- Search and book appointments with doctors
-- Filter doctors by specialty
-- View appointment history
-- Manage profile information
+- Search and filter doctors by specialty or consultation mode (**In-Clinic / Online / Call**)
+- Book appointments with date/time selection
+- View upcoming and past appointments
+- Manage personal profile
+- Leave ratings and reviews for doctors
 
 ### For Doctors
-- Dashboard with appointment statistics
-- Manage professional profile
-- View and manage patient appointments
-- Confirm/cancel appointments
+- Dashboard with **Today’s / Upcoming / Past** appointments
+- Accept, reject, or **reschedule** appointments
+- Manage professional profile and availability
+- Create, save, and share prescriptions (with QR code option)
+- View patient details and feedback
 
-## Tech Stack
+### Common
+- Role-based authentication from a **single login/signup page** (with "Are you a doctor?" toggle)
+- Real-time form validation with error messages
+- Toast notifications for feedback
+- Responsive UI with modern Tailwind design
 
-- **Framework**: Next.js 14 with TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
-- **State Management**: React Context API
-- **Mock Backend**: JSON Server
-- **Authentication**: Role-based with localStorage
+---
 
-## Quick Setup Guide
+## 🛠 Tech Stack
 
-1. **Install dependencies**:
-   \`\`\`bash
-   npm install
-   \`\`\`
+- **Framework**: Next.js 14 (React) with TypeScript  
+- **Styling**: Tailwind CSS, shadcn/ui  
+- **State Management**: React Context API  
+- **Forms & Validation**: React Hook Form + Yup  
+- **Notifications**: React-Toastify  
+- **Backend**: JSON Server (hosted on Render)  
+- **Icons**: Lucide Icons  
 
-2. **Install JSON Server globally** (if not already installed):
-   \`\`\`bash
-   npm install -g json-server
-   \`\`\`
+---
 
-3. **Start the mock backend first** (in one terminal):
-   \`\`\`bash
-   npm run json-server
-   \`\`\`
-   This should show: `Resources: http://localhost:3001/doctors, http://localhost:3001/patients, http://localhost:3001/appointments`
+## 🚀 Quick Setup Guide (Local Development)
 
-4. **Start the Next.js app** (in another terminal):
-   \`\`\`bash
-   npm run dev
-   \`\`\`
+### 1. Install dependencies
+```bash
+npm install
+```
 
-5. **Open the app**: Go to http://localhost:3000
+### 2. Set API URL
+Create a `.env.local` file:
+```env
+NEXT_PUBLIC_API_BASE_URL=https://server-side-api-pelg.onrender.com
+```
 
-## Getting Started
+### 3. Run the Next.js app
+```bash
+npm run dev
+```
+Visit **http://localhost:3000**
 
-### Prerequisites
-- Node.js 18+ installed
-- npm or yarn package manager
+*(Optional)* Run JSON Server locally:
+```bash
+npm install -g json-server
+json-server --watch db.json --port 3001
+```
+Then update `.env.local`:
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
+```
 
-### Installation
+---
 
-1. Clone the repository
-2. Install dependencies:
-   \`\`\`bash
-   npm install
-   \`\`\`
+## 🗝 Default Login Credentials
 
-3. Start the JSON Server (mock backend):
-   \`\`\`bash
-   npm run json-server
-   \`\`\`
-
-4. In a new terminal, start the development server:
-   \`\`\`bash
-   npm run dev
-   \`\`\`
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-## Default Login Credentials
-
-### Doctor Account
-- Email: sarah@example.com
-- Password: password123
-
-### Patient Account  
-- Email: john@example.com
-- Password: password123
-
-## Project Structure
-
-\`\`\`
-├── app/                    # Next.js app directory
-│   ├── auth/              # Authentication pages
-│   ├── doctor/            # Doctor-specific pages
-│   ├── profile/           # Patient profile
-│   └── appointments/      # Patient appointments
-├── components/            # Reusable components
-│   ├── ui/               # shadcn/ui components
-│   ├── Navbar.tsx        # Navigation component
-│   └── ProtectedRoute.tsx # Route protection
-├── contexts/             # React contexts
-│   └── AuthContext.tsx   # Authentication context
-├── lib/                  # Utility functions
-│   └── api.ts           # API functions
-└── db.json              # Mock database
-\`\`\`
-
-## API Endpoints
-
-The mock API runs on `http://localhost:3001` with the following endpoints:
-
-- `GET /doctors` - Get all doctors
-- `GET /patients` - Get all patients  
-- `GET /appointments` - Get all appointments
-- `POST /doctors` - Create doctor account
-- `POST /patients` - Create patient account
-- `POST /appointments` - Book appointment
-- `PATCH /appointments/:id` - Update appointment status
-
-## Features Implemented
-
-✅ Role-based authentication (Doctor/Patient)  
-✅ Responsive design with dark theme  
-✅ Doctor search and filtering  
-✅ Appointment booking system  
-✅ Profile management  
-✅ Dashboard with statistics  
-✅ Appointment status management  
-✅ Form validation  
-✅ Toast notifications  
-
-## Troubleshooting Login Issues
-
-If you're having trouble logging in, follow these steps:
-
-### 1. Check JSON Server Status
-- Make sure JSON Server is running: `npm run json-server`
-- You should see: `JSON Server is running on http://localhost:3001`
-- Visit http://localhost:3001/doctors to verify the server is working
-
-### 2. Test Connection
-- Visit http://localhost:3000/debug to check server connection
-- This page will show you the server status and available data
-
-### 3. Use Correct Credentials
-
-**Doctor Login:**
+### Doctor
 - Email: `sarah@example.com`
-- Password: `password123`
-- Toggle: Set to "Doctor"
+- Password: `26272627`
 
-**Patient Login:**
-- Email: `john@example.com` 
-- Password: `password123`
-- Toggle: Set to "Patient"
+### Patient
+- Email: `john@example.com`
+- Password: `11221122`
 
-### 4. Common Issues
+---
 
-**"Cannot connect to server" error:**
-- JSON Server is not running
-- Run `npm run json-server` in a separate terminal
-- Wait for the server to start completely
+## 📂 Project Structure
 
-**"Invalid email or password" error:**
-- Check that you're using the correct credentials above
-- Make sure the Doctor/Patient toggle matches your account type
-- Verify there are no extra spaces in email/password fields
+```
+app/
+  auth/               # Shared login/signup
+  (doctor)/           # Doctor dashboard & management
+  (patient)/          # Patient dashboard & booking
+components/           # UI components (includes shadcn/ui)
+contexts/             # Auth context
+lib/                  # API helpers & utilities
+public/               # Static assets
+styles/               # Tailwind styles
+```
 
-**Page not loading:**
-- Clear browser cache and cookies
-- Try refreshing the page
-- Check browser console for errors (F12)
+---
 
-### 5. Reset Steps
-If nothing works:
-1. Stop both servers (Ctrl+C)
-2. Delete `node_modules` and run `npm install`
-3. Start JSON Server: `npm run json-server`
-4. In new terminal, start Next.js: `npm run dev`
-5. Try logging in again
+## 📡 API Endpoints (Hosted on Render)
 
-## Deployment
+Base URL: `https://server-side-api-pelg.onrender.com`
 
-To deploy this application:
+| Endpoint            | Method | Description |
+|--------------------|--------|-------------|
+| `/doctors`         | GET    | List all doctors |
+| `/patients`        | GET    | List all patients |
+| `/appointments`    | GET/POST/PATCH | Manage appointments |
+| `/prescriptions`   | GET/POST | Manage prescriptions |
+| `/reviews`         | GET/POST | Add & fetch reviews |
 
-1. Build the project:
-   \`\`\`bash
-   npm run build
-   \`\`\`
+---
 
-2. Start the production server:
-   \`\`\`bash
-   npm start
-   \`\`\`
+## 🩺 Features Implemented
 
-For the mock API, you'll need to deploy JSON Server separately or replace it with a real backend.
+✅ Role-based authentication (Doctor / Patient)  
+✅ Doctor search & filtering  
+✅ Appointment booking & rescheduling  
+✅ Prescription generation & QR linking  
+✅ Patient & doctor dashboards  
+✅ Profile management  
+✅ Reviews & ratings  
+✅ Form validation & toast notifications  
+✅ Mobile-friendly UI  
 
-## Contributing
+---
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+## 🛠 Troubleshooting
 
-## License
+**"Server not responding" error:**  
+- Render API may be sleeping — wait 30–60 seconds after first request.  
+- Check `NEXT_PUBLIC_API_BASE_URL` is correct in `.env.local`.
 
-This project is licensed under the MIT License.
+**"Invalid email/password":**  
+- Use correct credentials (see above).  
+- Ensure the role toggle matches your account type.
+
+**Local server issues:**  
+- Stop all running servers (`Ctrl+C`)  
+- Delete `node_modules` & reinstall:  
+  ```bash
+  rm -rf node_modules
+  npm install
+  ```
+
+---
+
+## 📦 Deployment
+
+**Frontend**: Deployed on **Vercel**  
+**Backend**: JSON Server hosted on **Render**  
+
+---
+
+## 📜 License
+MIT © Anas Ali
