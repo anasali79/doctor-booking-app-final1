@@ -52,6 +52,10 @@ import { useToast } from "@/hooks/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import { PrescriptionDetailView } from "@/components/PrescriptionDetailView"
 import { generatePrescriptionPdf, printPrescription } from "@/lib/prescription-utils" // Import new utilities
+import { EnhancedReviewForm } from "@/components/enhanced-review-form"
+import { EnhancedReviewView } from "@/components/enhanced-review-view"
+import { ReviewNotification } from "@/components/review-notification"
+import { reviewSyncManager } from "@/lib/review-sync"
 
 export default function AppointmentsPage() {
   const { user } = useAuth()
@@ -68,11 +72,21 @@ export default function AppointmentsPage() {
   // Review dialog
   const [showReviewDialog, setShowReviewDialog] = useState(false)
   const [reviewAppointment, setReviewAppointment] = useState<Appointment | null>(null)
-  const [reviewRating, setReviewRating] = useState<number>(0)
-  const [reviewMessage, setReviewMessage] = useState<string>("")
   const [existingReview, setExistingReview] = useState<any | null>(null)
   const [showReviewViewDialog, setShowReviewViewDialog] = useState(false)
   const [appointmentIdToReview, setAppointmentIdToReview] = useState<Record<string, Review | null>>({})
+  const [notifications, setNotifications] = useState<Review[]>([])
+
+  // Notification functions
+  const addNotification = (review: Review) => {
+    setNotifications(prev => [review, ...prev.slice(0, 4)]) // Keep only last 5 notifications
+  }
+
+  const removeNotification = (reviewId: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== reviewId))
+  }
+
+
 
   // New states for prescription viewing
   const [showPrescriptionDialog, setShowPrescriptionDialog] = useState(false)
@@ -91,6 +105,27 @@ export default function AppointmentsPage() {
     if (user) {
       loadAppointments()
     }
+  }, [user])
+
+  // Listen for real-time review updates from doctor side
+  useEffect(() => {
+    if (!user) return
+
+    const unsubscribe = reviewSyncManager.subscribe((event) => {
+      // Check if this update is relevant to the current user
+      if (event.review.patientId === user.id) {
+        // Update the local review cache
+        setAppointmentIdToReview(prev => ({
+          ...prev,
+          [event.review.appointmentId]: event.review
+        }))
+
+        // Add notification for the user
+        addNotification(event.review)
+      }
+    })
+
+    return unsubscribe
   }, [user])
 
   const loadAppointments = async () => {
@@ -445,6 +480,34 @@ export default function AppointmentsPage() {
           <div className="hidden dark:block absolute bottom-20 right-20 w-28 h-28 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full blur-2xl animate-pulse [animation-delay:3000ms]" />
         </div>
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
+          {/* Notifications */}
+          {notifications.length > 0 && (
+            <motion.div
+              className="mb-6 space-y-3"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {notifications.map((notification) => (
+                <ReviewNotification
+                  key={notification.id}
+                  review={notification}
+                  onDismiss={() => removeNotification(notification.id)}
+                  onViewReview={() => {
+                    // Find the appointment for this review and show the review dialog
+                    const appointment = appointments.find(a => a.id === notification.appointmentId)
+                    if (appointment) {
+                      setReviewAppointment(appointment)
+                      setExistingReview(notification)
+                      setShowReviewViewDialog(true)
+                    }
+                    removeNotification(notification.id)
+                  }}
+                />
+              ))}
+            </motion.div>
+          )}
+          
           <motion.div
             className="text-center mb-8 sm:mb-12"
             initial={{ opacity: 0, y: -20 }}
@@ -457,6 +520,18 @@ export default function AppointmentsPage() {
             <p className="text-gray-600 dark:text-slate-300 text-base sm:text-lg max-w-2xl mx-auto">
               Manage your healthcare appointments with ease
             </p>
+            
+            {/* Demo: Simulate Doctor Response (Remove in production) */}
+            {appointments.length > 0 && (
+              <motion.div
+                className="mt-4"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 }}
+              >
+               
+              </motion.div>
+            )}
           </motion.div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -868,14 +943,12 @@ export default function AppointmentsPage() {
                                             setShowReviewViewDialog(true)
                                           } else {
                                             setExistingReview(null)
-                                            setReviewRating(0)
-                                            setReviewMessage("")
-                                            setShowReviewDialog(true)
+                                                            setShowReviewDialog(true)
                                           }
                                         }}
                                       >
                                         <Star className="w-4 h-4 mr-1" />
-                                        {appointmentIdToReview[appointment.id] ? 'See Review' : 'Rate Doctor'}
+                                        {appointmentIdToReview[appointment.id] ? 'View Review Details' : 'Write Review'}
                                       </Button>
                                     </motion.div>
                                   </motion.div>
@@ -1105,129 +1178,123 @@ export default function AppointmentsPage() {
           </DialogContent>
         </Dialog>
       </div>
-      {/* Review Dialog */}
+      {/* Enhanced Review Dialog */}
       <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Star className="w-5 h-5 text-amber-500" />
               Share your feedback
             </DialogTitle>
-            <DialogDescription>Your review helps other patients and your doctor improve care. You can edit/delete within 24h.</DialogDescription>
+            <DialogDescription>
+              Your detailed review helps other patients and your doctor improve care. You can edit/delete within 24h.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              {[1,2,3,4,5].map(n => (
-                <button key={n} onClick={() => setReviewRating(n)} className="p-1" aria-label={`Rate ${n} star`}>
-                  <Star className={`w-6 h-6 ${reviewRating >= n ? 'text-amber-500 fill-amber-500' : 'text-slate-400'}`} />
-                </button>
-              ))}
-            </div>
-            <Label>Message (optional)</Label>
-            <Textarea
-              value={reviewMessage}
-              onChange={(e) => setReviewMessage(e.target.value)}
-              className="min-h-[100px]"
-              placeholder="Write a short review..."
-            />
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                disabled={!reviewAppointment || reviewRating === 0}
-                onClick={async () => {
-                  if (!user || !reviewAppointment) return
-                  try {
-                    const created = await reviewsAPI.create({
-                      doctorId: reviewAppointment.doctorId,
-                      patientId: user.id,
-                      appointmentId: reviewAppointment.id,
-                      rating: reviewRating,
-                      message: reviewMessage,
-                      patientName: user.name,
-                    })
-                    await updateDoctorAggregateRating(reviewAppointment.doctorId)
-                    setShowReviewDialog(false)
-                    // update local cache so button flips to See Review without reload
-                    setAppointmentIdToReview((prev) => ({
-                      ...prev,
-                      [reviewAppointment.id]: created as any,
-                    }))
-                    toast({
-                      title: "Review submitted",
-                      description: "Review submitted successfully. Have a nice day!",
-                      duration: 2500,
-                    })
-                  } catch (e) {}
-                }}
-              >
-                Submit Review
-              </Button>
-              <Button variant="outline" onClick={() => setShowReviewDialog(false)}>Cancel</Button>
-            </div>
-          </div>
+          <EnhancedReviewForm
+            onSubmit={async (reviewData) => {
+              if (!user || !reviewAppointment) return
+              try {
+                const created = await reviewsAPI.create({
+                  ...reviewData,
+                  doctorId: reviewAppointment.doctorId,
+                  patientId: user.id,
+                  appointmentId: reviewAppointment.id,
+                  patientName: user.name,
+                })
+                await updateDoctorAggregateRating(reviewAppointment.doctorId)
+                setShowReviewDialog(false)
+                // update local cache so button flips to See Review without reload
+                setAppointmentIdToReview((prev) => ({
+                  ...prev,
+                  [reviewAppointment.id]: created as any,
+                }))
+                toast({
+                  title: "Review submitted",
+                  description: "Thank you for your detailed feedback! It helps improve healthcare quality.",
+                  duration: 3000,
+                })
+              } catch (e) {
+                console.error("Failed to submit review:", e)
+                toast({
+                  title: "Error",
+                  description: "Failed to submit review. Please try again.",
+                  variant: "destructive",
+                })
+              }
+            }}
+            onCancel={() => setShowReviewDialog(false)}
+            existingReview={existingReview}
+            doctorName={reviewAppointment?.doctorName}
+            patientName={user?.name}
+          />
         </DialogContent>
       </Dialog>
 
-      {/* View/Edit Review Dialog */}
+      {/* Enhanced View/Edit Review Dialog */}
       {existingReview && (
         <Dialog open={showReviewViewDialog} onOpenChange={setShowReviewViewDialog}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Star className="w-5 h-5 text-amber-500" />
-                Your review
+                Your Review Details
               </DialogTitle>
-              <DialogDescription>You can delete or make changes within 24 hours of submission.</DialogDescription>
+              <DialogDescription>
+                View your complete review with all details and doctor responses
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-3">
-              <div className="flex items-center gap-1">
-                {[1,2,3,4,5].map(n => (
-                  <Star key={n} className={`w-5 h-5 ${n <= existingReview.rating ? 'text-amber-500 fill-amber-500' : 'text-slate-400'}`} />
-                ))}
-              </div>
-              <div className="text-sm text-slate-300 whitespace-pre-wrap min-h-[60px] p-2 rounded bg-slate-800/40 border border-white/10">
-                {existingReview.message || '—'}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    // within 24h check
-                    const created = new Date(existingReview.createdAt).getTime()
-                    if (Date.now() - created > 24 * 60 * 60 * 1000) {
-                      alert('Edit window expired. You can only view this review now.')
-                      return
-                    }
-                    setShowReviewViewDialog(false)
-                    setShowReviewDialog(true)
-                    setReviewRating(existingReview.rating)
-                    setReviewMessage(existingReview.message || '')
-                  }}
-                  className="flex-1"
-                >
-                  Make changes
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={async () => {
-                    const created = new Date(existingReview.createdAt).getTime()
-                    if (Date.now() - created > 24 * 60 * 60 * 1000) {
-                      alert('Delete window expired. You can only view this review now.')
-                      return
-                    }
-                    try {
-                      await reviewsAPI.delete(existingReview.id)
-                      await updateDoctorAggregateRating(existingReview.doctorId)
-                      setShowReviewViewDialog(false)
-                      alert('Review deleted.')
-                    } catch {}
-                  }}
-                  className="flex-1"
-                >
-                  Delete
-                </Button>
-              </div>
-            </div>
+            <EnhancedReviewView
+              review={existingReview}
+              onEdit={() => {
+                // within 24h check
+                const created = new Date(existingReview.createdAt).getTime()
+                if (Date.now() - created > 24 * 60 * 60 * 1000) {
+                  toast({
+                    title: "Edit Window Expired",
+                    description: "You can only edit reviews within 24 hours of submission.",
+                    variant: "destructive",
+                  })
+                  return
+                }
+                setShowReviewViewDialog(false)
+                setShowReviewDialog(true)
+              }}
+              onDelete={async () => {
+                const created = new Date(existingReview.createdAt).getTime()
+                if (Date.now() - created > 24 * 60 * 60 * 1000) {
+                  toast({
+                    title: "Delete Window Expired",
+                    description: "You can only delete reviews within 24 hours of submission.",
+                    variant: "destructive",
+                  })
+                  return
+                }
+                try {
+                  await reviewsAPI.delete(existingReview.id)
+                  await updateDoctorAggregateRating(existingReview.doctorId)
+                  setShowReviewViewDialog(false)
+                  setAppointmentIdToReview((prev) => {
+                    const newState = { ...prev }
+                    delete newState[existingReview.appointmentId]
+                    return newState
+                  })
+                  toast({
+                    title: "Review Deleted",
+                    description: "Your review has been successfully deleted.",
+                    duration: 3000,
+                  })
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description: "Failed to delete review. Please try again.",
+                    variant: "destructive",
+                  })
+                }
+              }}
+              canEdit={Date.now() - new Date(existingReview.createdAt).getTime() <= 24 * 60 * 60 * 1000}
+              canDelete={Date.now() - new Date(existingReview.createdAt).getTime() <= 24 * 60 * 60 * 1000}
+              doctorName={existingReview.doctorName}
+            />
           </DialogContent>
         </Dialog>
       )}

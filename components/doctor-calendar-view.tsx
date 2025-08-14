@@ -1,7 +1,11 @@
 "use client"
 
 import { useState, useMemo, useCallback } from "react"
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - react-big-calendar has no bundled types in this setup
 import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar"
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore - dragAndDrop addon has no bundled types in this setup
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop"
 import moment from "moment"
 import { format, parseISO, setHours, setMinutes, setSeconds, setMilliseconds, addMinutes } from "date-fns"
@@ -358,7 +362,7 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
   }, [])
 
   return (
-    <div className="h-[80vh] min-h-[600px] bg-slate-900/80 rounded-lg p-4 shadow-xl">
+    <div className="h-[80vh] min-h-[600px] bg-card dark:bg-slate-900/80 rounded-lg p-4 shadow-xl">
       <DnDCalendar
         key={currentCalendarDate.toISOString() + currentView} // Add view to key to force re-render on view change
         localizer={localizer}
@@ -378,9 +382,9 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
         components={{
           event: EventComponent,
         }}
-        className="text-white"
+        className="text-foreground dark:text-white"
         style={{ height: "100%" }}
-        eventPropGetter={(event) => {
+        eventPropGetter={(event: any) => {
           const appointment = event.resource as Appointment
           let backgroundColor = "#3B82F6" // Default blue, will be overridden
           switch (appointment.status) {
@@ -403,7 +407,7 @@ export default function DoctorCalendarView({ appointments, onReschedule, onUpdat
           return { style: { backgroundColor, borderRadius: "8px", border: "none" } }
         }}
         toolbar={true}
-        tooltipAccessor={(event) => {
+        tooltipAccessor={(event: any) => {
           const apt = event.resource as Appointment
           const time = format(event.start, "hh:mm a")
           const patientName = apt.patientName

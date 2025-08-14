@@ -10,7 +10,11 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Star, Filter, Search } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Star, Filter, Search, BarChart3, MessageSquare, TrendingUp } from "lucide-react"
+import { EnhancedReviewCard } from "@/components/enhanced-review-card"
+import { ReviewAnalytics } from "@/components/review-analytics"
+import { notifyDoctorResponse, notifyStatusChange } from "@/lib/review-sync"
 
 export default function DoctorReviewsPage() {
   const { user } = useAuth()
@@ -23,6 +27,36 @@ export default function DoctorReviewsPage() {
   const [query, setQuery] = useState("")
   const [minStars, setMinStars] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("newest")
+  const [activeTab, setActiveTab] = useState("reviews")
+
+  // Generate sample enhanced review data for demonstration
+  const generateSampleData = (reviews: Review[]): Review[] => {
+    return reviews.map((review, index) => ({
+      ...review,
+      tags: [
+        ["Polite", "Professional", "Clear Explanation"][index % 3],
+        ["Long Waiting Time", "Rushed Consultation", "Good Bedside Manner"][index % 3]
+      ].filter(Boolean),
+      sentiment: {
+        positive: ["friendly", "clear explanation", "professional", "helpful"][index % 4] ? 
+          ["friendly", "clear explanation", "professional", "helpful"].slice(0, index % 4 + 1) : [],
+        negative: ["long wait", "rushed consultation"][index % 2] ? 
+          ["long wait", "rushed consultation"].slice(0, index % 2 + 1) : [],
+        overall: index % 3 === 0 ? "positive" : index % 3 === 1 ? "neutral" : "negative" as const
+      },
+      status: index % 3 === 0 ? "pending_reply" : index % 3 === 1 ? "replied" : "resolved" as const,
+      patientProfile: {
+        image: undefined,
+        initials: review.patientName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+        isRepeatPatient: index % 2 === 0
+      },
+      doctorResponse: index % 3 === 1 ? {
+        message: "Thank you for your feedback. We appreciate your input and will work to improve our services.",
+        isPublic: true,
+        createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+      } : undefined
+    }))
+  }
 
   async function fetchPage(p = 1, append = false) {
     if (!user) return
@@ -38,7 +72,8 @@ export default function DoctorReviewsPage() {
       })
       setTotal(total)
       setPage(p)
-      setReviews((prev) => (append ? [...prev, ...items] : items))
+      const enhancedItems = generateSampleData(items)
+      setReviews((prev) => (append ? [...prev, ...enhancedItems] : enhancedItems))
     } finally {
       if (append) setIsLoadingMore(false); else setIsLoading(false)
     }
@@ -59,6 +94,59 @@ export default function DoctorReviewsPage() {
 
   const filtered = reviews
 
+  const handleRespondToReview = async (reviewId: string, response: { message: string; isPublic: boolean }) => {
+    try {
+      // Here you would typically call an API to save the doctor's response
+      // For now, we'll simulate it by updating the local state
+      const updatedReview = reviews.find(r => r.id === reviewId)
+      if (!updatedReview) return
+
+      const newReview = {
+        ...updatedReview,
+        doctorResponse: {
+          message: response.message,
+          isPublic: response.isPublic,
+          createdAt: new Date().toISOString()
+        },
+        status: "replied" as const
+      }
+
+      setReviews(prev => prev.map(review => 
+        review.id === reviewId ? newReview : review
+      ))
+
+      // Notify user side about the doctor's response
+      notifyDoctorResponse(newReview)
+    } catch (error) {
+      console.error("Failed to respond to review:", error)
+      throw error
+    }
+  }
+
+  const handleUpdateReviewStatus = async (reviewId: string, status: "pending_reply" | "replied" | "resolved") => {
+    try {
+      // Here you would typically call an API to update the review status
+      // For now, we'll simulate it by updating the local state
+      const updatedReview = reviews.find(r => r.id === reviewId)
+      if (!updatedReview) return
+
+      const newReview = {
+        ...updatedReview,
+        status
+      }
+
+      setReviews(prev => prev.map(review => 
+        review.id === reviewId ? newReview : review
+      ))
+
+      // Notify user side about the status change
+      notifyStatusChange(newReview)
+    } catch (error) {
+      console.error("Failed to update review status:", error)
+      throw error
+    }
+  }
+
   return (
     <ProtectedRoute allowedRoles={["doctor"]}>
       <div className="min-h-screen pt-24 bg-gradient-to-br from-background via-muted/20 to-background dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
@@ -71,19 +159,20 @@ export default function DoctorReviewsPage() {
               <span>Doctor Portal</span>
             </div>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-foreground via-muted-foreground to-muted-foreground/60 bg-clip-text text-transparent mb-4">
-              Patient Reviews
+              Patient Reviews & Analytics
             </h1>
             <p className="text-muted-foreground text-base sm:text-xl max-w-2xl mx-auto">
-              Read your latest feedback and track your average rating
+              Comprehensive feedback management with sentiment analysis and insights
             </p>
+          
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card className="border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-lg text-foreground">Average Rating</CardTitle>
-                <CardDescription className="text-muted-foreground">Across all patient reviews</CardDescription>
+                <CardDescription className="text-muted-foreground">Across all reviews</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2 text-2xl font-bold text-foreground">
@@ -95,7 +184,7 @@ export default function DoctorReviewsPage() {
             <Card className="border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-lg text-foreground">Total Reviews</CardTitle>
-                <CardDescription className="text-muted-foreground">From your patients</CardDescription>
+                <CardDescription className="text-muted-foreground">From patients</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-foreground">{stats.total}</div>
@@ -103,123 +192,185 @@ export default function DoctorReviewsPage() {
             </Card>
             <Card className="border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-lg text-foreground">Rating Distribution</CardTitle>
-                <CardDescription className="text-muted-foreground">Percentage by stars</CardDescription>
+                <CardTitle className="text-lg text-foreground">Pending Replies</CardTitle>
+                <CardDescription className="text-muted-foreground">Need response</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {stats.distribution.map((d) => (
-                  <div key={d.stars} className="flex items-center gap-2">
-                    <div className="w-16 flex items-center gap-1 text-sm text-foreground">
-                      <span>{d.stars}</span>
-                      <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                    </div>
-                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full bg-amber-500" style={{ width: `${d.pct}%` }} />
-                    </div>
-                    <div className="w-10 text-right text-sm text-muted-foreground">{d.pct}%</div>
-                  </div>
-                ))}
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {reviews.filter(r => r.status === "pending_reply").length}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-0 bg-card/80 dark:bg-gradient-to-br dark:from-slate-900/80 dark:to-slate-800/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-lg text-foreground">Rating Distribution</CardTitle>
+                <CardDescription className="text-muted-foreground">5-star percentage</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {stats.distribution.find(d => d.stars === 5)?.pct || 0}%
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Filters */}
-          <Card className="border border-border/50 bg-card/80 dark:bg-slate-900/80 backdrop-blur-sm mb-8">
-            <CardHeader>
-              <CardTitle className="text-foreground text-lg flex items-center"><Filter className="w-4 h-4 mr-2"/> Filters</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label className="text-foreground">Search</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                  <Input className="pl-9 bg-muted/50 dark:bg-slate-800/50 border-border" placeholder="Search message or patient" value={query} onChange={(e) => setQuery(e.target.value)} />
-                </div>
-              </div>
-              <div>
-                <Label className="text-foreground">Minimum Stars</Label>
-                <Select value={minStars} onValueChange={setMinStars}>
-                  <SelectTrigger className="bg-card text-foreground dark:bg-slate-800 dark:text-slate-200 border-border dark:border-slate-700 focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50">
-                    <SelectValue placeholder="All"/>
-                  </SelectTrigger>
-                  <SelectContent className="bg-card text-foreground dark:bg-slate-800 dark:text-slate-200 border-border dark:border-slate-700 shadow-xl">
-                    <SelectItem value="all" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">All</SelectItem>
-                    <SelectItem value="5" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">5+</SelectItem>
-                    <SelectItem value="4" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">4+</SelectItem>
-                    <SelectItem value="3" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">3+</SelectItem>
-                    <SelectItem value="2" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">2+</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-foreground">Sort By</Label>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="bg-card text-foreground dark:bg-slate-800 dark:text-slate-200 border-border dark:border-slate-700 focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50">
-                    <SelectValue placeholder="Newest"/>
-                  </SelectTrigger>
-                  <SelectContent className="bg-card text-foreground dark:bg-slate-800 dark:text-slate-200 border-border dark:border-slate-700 shadow-xl">
-                    <SelectItem value="newest" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">Newest</SelectItem>
-                    <SelectItem value="oldest" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">Oldest</SelectItem>
-                    <SelectItem value="highest" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">Highest Rated</SelectItem>
-                    <SelectItem value="lowest" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">Lowest Rated</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Main Content Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 bg-card/80 dark:bg-slate-900/80 border border-border">
+              <TabsTrigger value="reviews" className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Reviews List
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Analytics & Insights
+              </TabsTrigger>
+              <TabsTrigger value="trends" className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                Rating Trends
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Reviews List */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {isLoading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i} className="animate-pulse bg-muted/50 dark:bg-slate-800/50">
-                  <CardHeader>
-                    <div className="h-5 bg-muted dark:bg-slate-700 rounded w-2/3 mb-2" />
-                    <div className="h-4 bg-muted dark:bg-slate-700 rounded w-1/3" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-16 bg-muted dark:bg-slate-700 rounded" />
-                  </CardContent>
-                </Card>
-              ))
-            ) : filtered.length === 0 ? (
-              <Card className="md:col-span-2 lg:col-span-3 border border-border bg-card">
-                <CardContent className="p-6 text-center text-muted-foreground">No reviews found</CardContent>
+            {/* Reviews List Tab */}
+            <TabsContent value="reviews" className="space-y-6">
+              {/* Filters */}
+              <Card className="border border-border/50 bg-card/80 dark:bg-slate-900/80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-foreground text-lg flex items-center">
+                    <Filter className="w-4 h-4 mr-2"/> Filters & Search
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-foreground">Search</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                      <Input 
+                        className="pl-9 bg-muted/50 dark:bg-slate-800/50 border-border" 
+                        placeholder="Search message or patient" 
+                        value={query} 
+                        onChange={(e) => setQuery(e.target.value)} 
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-foreground">Minimum Stars</Label>
+                    <Select value={minStars} onValueChange={setMinStars}>
+                      <SelectTrigger className="bg-card text-foreground dark:bg-slate-800 dark:text-slate-200 border-border dark:border-slate-700 focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50">
+                        <SelectValue placeholder="All"/>
+                      </SelectTrigger>
+                      <SelectContent className="bg-card text-foreground dark:bg-slate-800 dark:text-slate-200 border-border dark:border-slate-700 shadow-xl">
+                        <SelectItem value="all" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">All</SelectItem>
+                        <SelectItem value="5" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">5+</SelectItem>
+                        <SelectItem value="4" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">4+</SelectItem>
+                        <SelectItem value="3" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">3+</SelectItem>
+                        <SelectItem value="2" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">2+</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-foreground">Sort By</Label>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="bg-card text-foreground dark:bg-slate-800 dark:text-slate-200 border-border dark:border-slate-700 focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500/50">
+                        <SelectValue placeholder="Newest"/>
+                      </SelectTrigger>
+                      <SelectContent className="bg-card text-foreground dark:text-slate-200 border-border dark:border-slate-700 shadow-xl">
+                        <SelectItem value="newest" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">Newest</SelectItem>
+                        <SelectItem value="oldest" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">Oldest</SelectItem>
+                        <SelectItem value="highest" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">Highest Rated</SelectItem>
+                        <SelectItem value="lowest" className="text-foreground dark:text-slate-200 data-[highlighted]:bg-muted data-[highlighted]:text-foreground">Lowest Rated</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
               </Card>
-            ) : (
-              filtered.map((r) => (
-                <Card key={r.id} className="border border-border bg-card/80 dark:bg-slate-900/80">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-foreground text-lg">{r.patientName || 'Patient'}</CardTitle>
-                      <div className="flex items-center gap-1">
-                        {[1,2,3,4,5].map((n) => (
-                          <Star key={n} className={`w-4 h-4 ${n <= r.rating ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'}`} />
-                        ))}
+
+              {/* Enhanced Reviews List */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <Card key={i} className="animate-pulse bg-muted/50 dark:bg-slate-800/50">
+                      <CardHeader>
+                        <div className="h-5 bg-muted dark:bg-slate-700 rounded w-2/3 mb-2" />
+                        <div className="h-4 bg-muted dark:bg-slate-700 rounded w-1/3" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-16 bg-muted dark:bg-slate-700 rounded" />
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : filtered.length === 0 ? (
+                  <Card className="lg:col-span-2 border border-border bg-card">
+                    <CardContent className="p-6 text-center text-muted-foreground">
+                      No reviews found matching your criteria
+                    </CardContent>
+                  </Card>
+                ) : (
+                  filtered.map((review) => (
+                    <EnhancedReviewCard 
+                      key={review.id} 
+                      review={review} 
+                      onRespond={handleRespondToReview}
+                      onUpdateStatus={handleUpdateReviewStatus}
+                    />
+                  ))
+                )}
+              </div>
+
+              {/* Pagination */}
+              {filtered.length > 0 && reviews.length < total && (
+                <div className="flex justify-center mt-8">
+                  <Button
+                    onClick={() => fetchPage(page + 1, true)}
+                    disabled={isLoadingMore}
+                    className="bg-teal-600 hover:bg-teal-700"
+                  >
+                    {isLoadingMore ? "Loading..." : "Load more reviews"}
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Analytics Tab */}
+            <TabsContent value="analytics" className="space-y-6">
+              <ReviewAnalytics reviews={reviews} />
+            </TabsContent>
+
+            {/* Rating Trends Tab */}
+            <TabsContent value="trends" className="space-y-6">
+              <Card className="border border-border bg-card/80">
+                <CardHeader>
+                  <CardTitle className="text-lg text-foreground flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5" />
+                    Detailed Rating Distribution
+                  </CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Breakdown of ratings by star count
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {stats.distribution.map((d) => (
+                    <div key={d.stars} className="flex items-center gap-4">
+                      <div className="w-16 flex items-center gap-1 text-sm text-foreground">
+                        <span>{d.stars}</span>
+                        <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                      </div>
+                      <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                        <div 
+                          className="h-full bg-amber-500 transition-all duration-500" 
+                          style={{ width: `${d.pct}%` }} 
+                        />
+                      </div>
+                      <div className="w-20 text-right">
+                        <div className="text-sm font-medium text-foreground">{d.count}</div>
+                        <div className="text-xs text-muted-foreground">{d.pct}%</div>
                       </div>
                     </div>
-                    <CardDescription className="text-muted-foreground">{new Date(r.createdAt).toLocaleString()}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-foreground text-sm whitespace-pre-wrap">{r.message || '—'}</div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-
-          {/* Pagination / Infinite Scroll Controls */}
-          {filtered.length > 0 && reviews.length < total && (
-            <div className="flex justify-center mt-8">
-              <Button
-                onClick={() => fetchPage(page + 1, true)}
-                disabled={isLoadingMore}
-                className="bg-teal-600 hover:bg-teal-700"
-              >
-                {isLoadingMore ? "Loading..." : "Load more"}
-              </Button>
-            </div>
-          )}
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </ProtectedRoute>

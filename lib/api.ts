@@ -41,6 +41,25 @@ export interface Review {
   message?: string
   patientName?: string
   createdAt: string
+  
+  // Enhanced fields for comprehensive review system
+  tags?: string[] // e.g., ["Polite", "Professional", "Long Waiting Time"]
+  sentiment?: {
+    positive: string[] // e.g., ["friendly", "clear explanation"]
+    negative: string[] // e.g., ["long wait", "rushed consultation"]
+    overall: "positive" | "neutral" | "negative"
+  }
+  doctorResponse?: {
+    message: string
+    isPublic: boolean
+    createdAt: string
+  }
+  status: "pending_reply" | "replied" | "resolved"
+  patientProfile?: {
+    image?: string
+    initials?: string
+    isRepeatPatient: boolean
+  }
 }
 
 // Existing interfaces and types

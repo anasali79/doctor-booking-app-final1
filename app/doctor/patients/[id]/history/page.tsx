@@ -441,11 +441,11 @@ export default function PatientMedicalHistoryPage() {
                     </Card>
                   ))
                 ) : filteredAppointments.length === 0 ? (
-                  <Card className="border border-border dark:border-slate-200 bg-card dark:bg-white">
+                  <Card className="border border-border bg-card">
                     <CardContent className="p-6 text-center">
                       <CalendarIcon className="w-12 h-12 text-muted-foreground dark:text-slate-500 mx-auto mb-3" />
-                      <div className="text-foreground dark:text-black font-medium">No appointments found</div>
-                      <div className="text-muted-foreground dark:text-black/70 text-sm">No appointments match your current filters.</div>
+                      <div className="text-foreground font-medium">No appointments found</div>
+                      <div className="text-muted-foreground text-sm">No appointments match your current filters.</div>
                     </CardContent>
                   </Card>
                 ) : (
@@ -608,11 +608,11 @@ export default function PatientMedicalHistoryPage() {
                     </Card>
                   ))
                 ) : filteredPrescriptions.length === 0 ? (
-                  <Card className="border border-slate-200 bg-white">
+                  <Card className="border border-border bg-card">
                     <CardContent className="p-6 text-center">
-                      <Pill className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                      <div className="text-black font-medium">No prescriptions found</div>
-                      <div className="text-black/70 text-sm">No prescriptions match your current filters.</div>
+                      <Pill className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                      <div className="text-foreground font-medium">No prescriptions found</div>
+                      <div className="text-muted-foreground text-sm">No prescriptions match your current filters.</div>
                     </CardContent>
                   </Card>
                 ) : (
@@ -734,7 +734,7 @@ export default function PatientMedicalHistoryPage() {
             if (!upcoming.length) return null
             const next = upcoming[0]
             return (
-              <Card className="mt-6 border border-teal-200/40 bg-white text-slate-800">
+              <Card className="mt-6 border border-teal-200/40 bg-white text-slate-800 dark:bg-white/5 dark:text-slate-200 dark:border-white/10">
                 <CardContent className="py-4">
                   <div className="text-sm text-slate-600">Next follow-up</div>
                   <div className="text-lg font-semibold">
